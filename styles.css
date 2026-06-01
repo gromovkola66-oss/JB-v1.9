@@ -37,7 +37,7 @@ body {
 
 /* SCREENS */
 .screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
-.screen.active { display: flex; }
+.screen.active { display: flex; animation: fadeIn 0.4s ease; }
 
 /* MAIN MENU */
 #mainMenu {
@@ -624,4 +624,439 @@ body {
     .resource { font-size: 0.8em; }
     #bottomPanel { height: 160px; }
     .overview-grid { grid-template-columns: 1fr 1fr; }
+}
+
+
+
+/* ==========================================
+   АНИМАЦИИ И ПЕРЕХОДЫ
+   ========================================== */
+
+/* Плавное появление экранов */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Панели выезжают */
+#topBar {
+    animation: slideDown 0.5s ease;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+#toolPanel {
+    animation: slideRight 0.5s ease 0.1s both;
+}
+
+@keyframes slideRight {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+#bottomPanel {
+    animation: slideUp 0.5s ease 0.2s both;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+#minimap {
+    animation: fadeIn 0.6s ease 0.3s both;
+}
+
+/* Hover эффекты кнопок */
+.btn {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+}
+
+.btn:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+/* Пульсация кнопки в меню */
+#startBtn, .btn-primary {
+    animation: pulseShadow 2s ease-in-out infinite;
+}
+
+@keyframes pulseShadow {
+    0%, 100% { box-shadow: 0 4px 15px rgba(0,188,212,0.3); }
+    50% { box-shadow: 0 4px 25px rgba(0,188,212,0.5), 0 0 40px rgba(0,188,212,0.1); }
+}
+
+/* Tool buttons */
+.tool-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+}
+
+.tool-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 10px rgba(0,188,212,0.2);
+}
+
+.tool-btn:active {
+    transform: scale(0.95);
+}
+
+.tool-btn.active {
+    animation: toolActive 0.3s ease;
+    box-shadow: 0 0 12px rgba(0,188,212,0.3);
+}
+
+@keyframes toolActive {
+    0% { transform: scale(0.9); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Вкладки */
+.tab-btn {
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.tab-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(-50%);
+}
+
+.tab-btn.active::after {
+    width: 80%;
+}
+
+.tab-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Tab content transitions */
+.tab-pane {
+    animation: tabFadeIn 0.3s ease;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Карточки обзора */
+.overview-card {
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.overview-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 4px 15px rgba(0,188,212,0.1);
+}
+
+.overview-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,188,212,0.03), transparent);
+    transition: left 0.5s ease;
+}
+
+.overview-card:hover::before {
+    left: 100%;
+}
+
+/* Финансовые карточки */
+.finance-card {
+    transition: all 0.25s ease;
+}
+
+.finance-card:hover {
+    transform: scale(1.02);
+}
+
+.finance-card.income:hover { box-shadow: 0 4px 15px rgba(76,175,80,0.15); }
+.finance-card.expense:hover { box-shadow: 0 4px 15px rgba(244,67,54,0.15); }
+.finance-card.profit:hover { box-shadow: 0 4px 15px rgba(0,188,212,0.15); }
+
+/* Кнопки скорости */
+.time-btn {
+    transition: all 0.2s ease;
+}
+
+.time-btn:hover {
+    transform: scale(1.15);
+    border-color: var(--accent);
+}
+
+.time-btn.active {
+    animation: speedPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes speedPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,188,212,0.3); }
+    50% { box-shadow: 0 0 0 4px rgba(0,188,212,0); }
+}
+
+/* Ресурсы верхней панели */
+.resource {
+    transition: all 0.3s ease;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.resource:hover {
+    background: rgba(0,188,212,0.08);
+}
+
+/* Модальные окна */
+.modal-overlay {
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    animation: modalAppear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalAppear {
+    from { transform: scale(0.8) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.pause-menu {
+    animation: modalAppear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Уведомления — улучшенная анимация */
+.notification {
+    animation: notifySlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.3s ease;
+}
+
+@keyframes notifySlide {
+    from { transform: translateX(-30px) scale(0.9); opacity: 0; }
+    to { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+.notification:hover {
+    transform: translateX(3px);
+    border-color: var(--accent);
+}
+
+/* Советник */
+#advisor {
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#advisor.advisor-hidden {
+    transform: translateY(30px) scale(0.9);
+    opacity: 0;
+}
+
+.advisor-avatar {
+    animation: advisorBob 3s ease-in-out infinite;
+}
+
+@keyframes advisorBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+/* Difficulty buttons */
+.diff-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.diff-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.diff-btn.selected {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,188,212,0.2);
+}
+
+/* Save slot items */
+.save-slot-item {
+    transition: all 0.2s ease;
+}
+
+.save-slot-item:hover:not(.empty) {
+    transform: translateX(4px);
+    border-color: var(--accent);
+    box-shadow: 0 2px 10px rgba(0,188,212,0.1);
+}
+
+/* Big numbers animation (counter update feel) */
+.big-number {
+    transition: transform 0.2s ease;
+}
+
+.big-number:hover {
+    transform: scale(1.05);
+}
+
+/* Minimap hover */
+#minimap {
+    transition: all 0.3s ease;
+    opacity: 0.85;
+}
+
+#minimap:hover {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+/* Company name glow */
+.company-name {
+    transition: text-shadow 0.3s ease;
+}
+
+.company-name:hover {
+    text-shadow: 0 0 10px rgba(0,188,212,0.5);
+}
+
+/* Era badge pulse */
+.era-badge {
+    animation: eraPulse 4s ease-in-out infinite;
+}
+
+@keyframes eraPulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+/* Loading shimmer for panels */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Game title animation */
+.game-title {
+    animation: titleFloat 4s ease-in-out infinite;
+}
+
+@keyframes titleFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+/* Smooth color transitions for data displays */
+#moneyDisplay, #clientsDisplay, #incomeDisplay, #uptimeDisplay, #reputationDisplay {
+    transition: color 0.5s ease;
+}
+
+
+
+/* ==========================================
+   ТУТОРИАЛ
+   ========================================== */
+#tutorialOverlay {
+    position: fixed;
+    bottom: 220px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    display: none;
+    pointer-events: all;
+}
+
+.tutorial-box {
+    background: var(--bg-panel);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px 28px;
+    min-width: 380px;
+    max-width: 480px;
+    box-shadow: 0 8px 40px rgba(0,188,212,0.2), 0 0 60px rgba(0,188,212,0.05);
+    animation: modalAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tutorial-box h3 {
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-size: 1.1em;
+}
+
+.tutorial-box p {
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 14px;
+    font-size: 0.95em;
+}
+
+.tutorial-step-indicator {
+    color: var(--text-dim);
+    font-size: 0.75em;
+    margin-bottom: 8px;
+}
+
+.tutorial-actions {
+    display: flex;
+    align-items: center;
+}
+
+.tutorial-hint {
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 0.85em;
+    animation: hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.tutorial-highlight {
+    position: relative;
+    z-index: 150;
+    animation: highlightPulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 0 3px rgba(0,188,212,0.5), 0 0 15px rgba(0,188,212,0.3) !important;
+}
+
+@keyframes highlightPulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(0,188,212,0.5), 0 0 15px rgba(0,188,212,0.3); }
+    50% { box-shadow: 0 0 0 5px rgba(0,188,212,0.7), 0 0 25px rgba(0,188,212,0.4); }
 }

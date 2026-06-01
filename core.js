@@ -149,6 +149,9 @@ const Game = {
         setTimeout(() => {
             UI.showAdvisor('Добро пожаловать! Вы основали компанию "' + this.state.companyName + '". Начните с прокладки кабеля к ближайшим домам.');
         }, 1000);
+
+        // Запуск туториала
+        Tutorial.start();
     },
 
     // ==========================================
@@ -236,6 +239,7 @@ const Game = {
         Clients.monthlyUpdate();
         AI.monthlyUpdate();
         Tech.monthlyUpdate();
+        Achievements.check();
 
         // Статистика
         this.stats.monthlyHistory.push({
@@ -274,6 +278,7 @@ const Game = {
         this.speed = speed;
         this.paused = false;
         UI.updateTimeButtons();
+        Tutorial.trigger('speed_changed');
     },
 
     // ==========================================
@@ -294,6 +299,7 @@ const Game = {
             ai: AI.serialize(),
             tech: Tech.serialize(),
             events: Events.serialize(),
+            achievements: Achievements.serialize(),
         };
 
         const key = `ipt_save_${this.slot}`;
@@ -336,6 +342,7 @@ const Game = {
             Tech.deserialize(saveData.tech);
             Events.init();
             Events.deserialize(saveData.events);
+            Achievements.deserialize(saveData.achievements);
             Renderer.init();
 
             this.running = true;

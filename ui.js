@@ -126,6 +126,9 @@ const UI = {
         if (tool !== 'cable') {
             Infrastructure.cancelCable();
         }
+
+        // Туториал триггер
+        if (tool === 'cable') Tutorial.trigger('tool_cable');
     },
 
     // ==========================================
@@ -140,6 +143,10 @@ const UI = {
 
         // Обновляем содержимое вкладки
         this.updateTab(tab);
+
+        // Туториал триггеры
+        if (tab === 'tariffs') Tutorial.trigger('tab_tariffs');
+        if (tab === 'finance') Tutorial.trigger('tab_finance');
     },
 
     updateTab(tab) {

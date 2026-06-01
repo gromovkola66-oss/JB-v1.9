@@ -74,6 +74,7 @@ const Renderer = {
         // Рисуем только видимые тайлы
         this.renderTiles(ctx);
         this.renderBuildings(ctx);
+        this.renderCars(ctx);
         this.renderInfrastructure(ctx);
         this.renderHighlights(ctx);
         this.renderParticles(ctx);
@@ -81,6 +82,7 @@ const Renderer = {
         ctx.restore();
 
         // Overlay эффекты (не зависят от камеры)
+        this.renderSeasonOverlay(ctx, W, H);
         this.renderDayNightOverlay(ctx, W, H);
         this.renderWeather(ctx, W, H);
 
@@ -238,62 +240,429 @@ const Renderer = {
 
     renderBuilding(ctx, building, px, py, ts) {
         const cam = MapSystem.camera;
-        const h = building.height;
-        const bh = ts * h; // высота здания визуально
+        const zoom = cam.zoom;
+        const lit = building.connected && building.connectedClients > 0;
 
         // Тень
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
         ctx.fillRect(px + 3, py + 3, ts - 2, ts - 2);
 
-        // Корпус здания
-        const baseColor = building.color || '#4a6fa5';
-        ctx.fillStyle = baseColor;
-        ctx.fillRect(px + 2, py + (ts - bh) * 0.5, ts - 4, bh * 0.9);
-
-        // Крыша
-        ctx.fillStyle = this.darkenColor(baseColor, 0.3);
-        ctx.fillRect(px + 1, py + (ts - bh) * 0.5 - 2, ts - 2, 3);
-
-        // Окна
-        if (cam.zoom > 0.7) {
-            const windowRows = Math.max(1, Math.floor(bh / 8));
-            const windowCols = Math.max(1, Math.floor((ts - 8) / 7));
-
-            for (let wy = 0; wy < windowRows; wy++) {
-                for (let wx = 0; wx < windowCols; wx++) {
-                    const winX = px + 5 + wx * 7;
-                    const winY = py + (ts - bh) * 0.5 + 4 + wy * 8;
-
-                    // Окна светятся ночью и у подключённых зданий
-                    let windowColor;
-                    if (building.connected && building.connectedClients > 0) {
-                        const flicker = Math.sin(this.time * 3 + wx + wy + building.id) * 0.2;
-                        windowColor = `rgba(255, 240, 150, ${0.6 + flicker})`;
-                    } else {
-                        windowColor = 'rgba(30, 50, 80, 0.6)';
-                    }
-
-                    ctx.fillStyle = windowColor;
-                    ctx.fillRect(winX, winY, 4, 5);
-                }
-            }
+        // Вызываем специализированную отрисовку по варианту
+        switch (building.variant) {
+            case 'apartment': this.drawApartment(ctx, building, px, py, ts, lit); break;
+            case 'house_small': this.drawSmallHouse(ctx, building, px, py, ts, lit); break;
+            case 'house_medium': this.drawMediumHouse(ctx, building, px, py, ts, lit); break;
+            case 'house_large': this.drawLargeHouse(ctx, building, px, py, ts, lit); break;
+            case 'office': this.drawOffice(ctx, building, px, py, ts, lit); break;
+            case 'shop': this.drawShop(ctx, building, px, py, ts, lit); break;
+            case 'cafe': this.drawCafe(ctx, building, px, py, ts, lit); break;
+            case 'bank': this.drawBank(ctx, building, px, py, ts, lit); break;
+            case 'factory': this.drawFactory(ctx, building, px, py, ts, lit); break;
+            case 'warehouse': this.drawWarehouse(ctx, building, px, py, ts, lit); break;
+            case 'workshop': this.drawWorkshop(ctx, building, px, py, ts, lit); break;
+            case 'school': this.drawSchool(ctx, building, px, py, ts, lit); break;
+            case 'hospital': this.drawHospital(ctx, building, px, py, ts, lit); break;
+            case 'admin': this.drawAdmin(ctx, building, px, py, ts, lit); break;
+            default: this.drawGenericBuilding(ctx, building, px, py, ts, lit); break;
         }
 
         // Индикатор подключения
-        if (building.connected && MapSystem.camera.zoom > 0.5) {
+        if (building.connected && zoom > 0.5) {
             ctx.beginPath();
-            ctx.arc(px + ts - 5, py + 5, 3, 0, Math.PI * 2);
-            ctx.fillStyle = building.connectedClients > 0 ? '#4caf50' : '#ff9800';
+            ctx.arc(px + ts - 4, py + 4, 3, 0, Math.PI * 2);
+            ctx.fillStyle = lit ? '#4caf50' : '#ff9800';
             ctx.fill();
+            if (lit) {
+                ctx.beginPath();
+                ctx.arc(px + ts - 4, py + 4, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(76, 175, 80, 0.2)';
+                ctx.fill();
+            }
         }
 
-        // Индикатор спроса (если не подключено)
-        if (!building.connected && building.demandLevel > 0.5 && MapSystem.camera.zoom > 0.6) {
-            const pulse = Math.sin(this.time * 4) * 0.3 + 0.7;
+        // Индикатор спроса
+        if (!building.connected && building.demandLevel > 0.5 && zoom > 0.6) {
+            const pulse = Math.sin(this.time * 4 + building.id) * 0.3 + 0.7;
             ctx.beginPath();
-            ctx.arc(px + ts / 2, py - 3, 3, 0, Math.PI * 2);
+            ctx.arc(px + ts / 2, py - 4, 3, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(255, 100, 50, ${pulse})`;
             ctx.fill();
+        }
+    },
+
+    // --- ЖИЛЫЕ ---
+    drawApartment(ctx, b, px, py, ts, lit) {
+        // Многоэтажка
+        const bh = ts * 0.85;
+        ctx.fillStyle = '#3a5580';
+        ctx.fillRect(px + 3, py + ts - bh, ts - 6, bh - 2);
+        // Этажные полоски
+        ctx.fillStyle = '#2d4570';
+        for (let i = 0; i < 4; i++) {
+            ctx.fillRect(px + 3, py + ts - bh + i * (bh / 4), ts - 6, 1);
+        }
+        // Крыша
+        ctx.fillStyle = '#4a6590';
+        ctx.fillRect(px + 2, py + ts - bh - 2, ts - 4, 3);
+        // Антенна на крыше
+        ctx.fillStyle = '#778';
+        ctx.fillRect(px + ts / 2 - 1, py + ts - bh - 7, 2, 6);
+        // Окна (3 колонки)
+        this.drawWindowGrid(ctx, b, px + 6, py + ts - bh + 4, 3, 4, 6, (bh - 8) / 4, lit);
+    },
+
+    drawSmallHouse(ctx, b, px, py, ts, lit) {
+        // Маленький домик с треугольной крышей
+        const bh = ts * 0.5;
+        const baseY = py + ts - bh;
+        // Стены
+        ctx.fillStyle = '#c4a882';
+        ctx.fillRect(px + 5, baseY, ts - 10, bh - 2);
+        // Крыша треугольная
+        ctx.fillStyle = '#8b4513';
+        ctx.beginPath();
+        ctx.moveTo(px + 3, baseY);
+        ctx.lineTo(px + ts / 2, baseY - 8);
+        ctx.lineTo(px + ts - 3, baseY);
+        ctx.closePath();
+        ctx.fill();
+        // Дверь
+        ctx.fillStyle = '#5a3a1a';
+        ctx.fillRect(px + ts / 2 - 3, baseY + bh - 10, 6, 8);
+        // Окно
+        const wc = lit ? `rgba(255, 230, 130, ${0.7 + Math.sin(this.time * 2 + b.id) * 0.2})` : 'rgba(40, 60, 100, 0.5)';
+        ctx.fillStyle = wc;
+        ctx.fillRect(px + 8, baseY + 4, 5, 5);
+        ctx.fillRect(px + ts - 13, baseY + 4, 5, 5);
+    },
+
+    drawMediumHouse(ctx, b, px, py, ts, lit) {
+        // Двухэтажный дом
+        const bh = ts * 0.65;
+        const baseY = py + ts - bh;
+        ctx.fillStyle = '#a0b8c8';
+        ctx.fillRect(px + 4, baseY, ts - 8, bh - 2);
+        // Крыша плоская с карнизом
+        ctx.fillStyle = '#556b7a';
+        ctx.fillRect(px + 2, baseY - 3, ts - 4, 4);
+        // Балкон второго этажа
+        ctx.fillStyle = '#8a9fad';
+        ctx.fillRect(px + 6, baseY + 3, ts - 12, 2);
+        // Окна (2 этажа)
+        this.drawWindowGrid(ctx, b, px + 7, baseY + 5, 2, 2, 8, (bh - 12) / 2, lit);
+        // Дверь
+        ctx.fillStyle = '#3a5060';
+        ctx.fillRect(px + ts / 2 - 3, baseY + bh - 10, 6, 8);
+    },
+
+    drawLargeHouse(ctx, b, px, py, ts, lit) {
+        // Большой коттедж
+        const bh = ts * 0.7;
+        const baseY = py + ts - bh;
+        // Основной корпус
+        ctx.fillStyle = '#e8dcc8';
+        ctx.fillRect(px + 3, baseY, ts - 6, bh - 2);
+        // Гараж сбоку
+        ctx.fillStyle = '#d0c4b0';
+        ctx.fillRect(px + ts - 12, baseY + bh * 0.4, 10, bh * 0.6 - 2);
+        // Крыша
+        ctx.fillStyle = '#6b3a2a';
+        ctx.beginPath();
+        ctx.moveTo(px + 1, baseY);
+        ctx.lineTo(px + ts * 0.6, baseY - 10);
+        ctx.lineTo(px + ts - 1, baseY);
+        ctx.closePath();
+        ctx.fill();
+        // Окна
+        this.drawWindowGrid(ctx, b, px + 6, baseY + 5, 3, 2, 7, (bh - 14) / 2, lit);
+        // Дымоход
+        ctx.fillStyle = '#8b7355';
+        ctx.fillRect(px + ts * 0.7, baseY - 12, 4, 8);
+    },
+
+    // --- КОММЕРЧЕСКИЕ ---
+    drawOffice(ctx, b, px, py, ts, lit) {
+        // Офисное здание со стеклянным фасадом
+        const bh = ts * 0.8;
+        const baseY = py + ts - bh;
+        // Каркас
+        ctx.fillStyle = '#2a3a4a';
+        ctx.fillRect(px + 2, baseY, ts - 4, bh - 1);
+        // Стеклянные панели
+        const glassColor = lit ? 'rgba(100, 200, 255, 0.4)' : 'rgba(40, 80, 120, 0.6)';
+        ctx.fillStyle = glassColor;
+        ctx.fillRect(px + 4, baseY + 2, ts - 8, bh - 5);
+        // Горизонтальные перекрытия
+        ctx.fillStyle = '#3a4a5a';
+        for (let i = 0; i < 3; i++) {
+            ctx.fillRect(px + 2, baseY + i * (bh / 3), ts - 4, 2);
+        }
+        // Вход
+        ctx.fillStyle = '#1a2a3a';
+        ctx.fillRect(px + ts / 2 - 5, baseY + bh - 8, 10, 7);
+        // Блики на стекле
+        if (lit) {
+            ctx.fillStyle = `rgba(150, 220, 255, ${0.1 + Math.sin(this.time + b.id) * 0.05})`;
+            ctx.fillRect(px + 5, baseY + 3, 4, bh - 8);
+        }
+    },
+
+    drawShop(ctx, b, px, py, ts, lit) {
+        // Магазин с витриной
+        const bh = ts * 0.55;
+        const baseY = py + ts - bh;
+        // Стены
+        ctx.fillStyle = '#d4a06a';
+        ctx.fillRect(px + 3, baseY, ts - 6, bh - 2);
+        // Навес/маркиза
+        ctx.fillStyle = '#cc4444';
+        ctx.fillRect(px + 2, baseY - 3, ts - 4, 4);
+        // Полоски на навесе
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < 4; i++) {
+            ctx.fillRect(px + 4 + i * 7, baseY - 3, 3, 4);
+        }
+        // Витрина
+        const vitColor = lit ? 'rgba(255, 240, 180, 0.7)' : 'rgba(60, 90, 120, 0.5)';
+        ctx.fillStyle = vitColor;
+        ctx.fillRect(px + 5, baseY + 4, ts - 10, bh * 0.5);
+        // Дверь
+        ctx.fillStyle = '#5a3a2a';
+        ctx.fillRect(px + ts / 2 - 3, baseY + bh - 10, 6, 8);
+    },
+
+    drawCafe(ctx, b, px, py, ts, lit) {
+        // Кафе с верандой
+        const bh = ts * 0.5;
+        const baseY = py + ts - bh;
+        // Стены
+        ctx.fillStyle = '#f0e6d0';
+        ctx.fillRect(px + 4, baseY, ts - 8, bh - 2);
+        // Крыша
+        ctx.fillStyle = '#2a8a4a';
+        ctx.fillRect(px + 2, baseY - 3, ts - 4, 4);
+        // Столики на улице (точки)
+        ctx.fillStyle = '#8b7355';
+        ctx.beginPath(); ctx.arc(px + 7, py + ts - 3, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(px + ts - 7, py + ts - 3, 2, 0, Math.PI * 2); ctx.fill();
+        // Окно
+        const wc = lit ? `rgba(255, 220, 100, 0.8)` : 'rgba(50, 70, 90, 0.5)';
+        ctx.fillStyle = wc;
+        ctx.fillRect(px + 6, baseY + 4, ts - 12, bh * 0.4);
+        // Вывеска
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillRect(px + ts / 2 - 4, baseY - 6, 8, 3);
+    },
+
+    drawBank(ctx, b, px, py, ts, lit) {
+        // Банк — солидное здание с колоннами
+        const bh = ts * 0.75;
+        const baseY = py + ts - bh;
+        // Стены
+        ctx.fillStyle = '#e0dcd0';
+        ctx.fillRect(px + 3, baseY, ts - 6, bh - 2);
+        // Крыша с фронтоном
+        ctx.fillStyle = '#8a8070';
+        ctx.beginPath();
+        ctx.moveTo(px + 2, baseY);
+        ctx.lineTo(px + ts / 2, baseY - 6);
+        ctx.lineTo(px + ts - 2, baseY);
+        ctx.closePath();
+        ctx.fill();
+        // Колонны
+        ctx.fillStyle = '#c8c0b0';
+        ctx.fillRect(px + 6, baseY + 3, 2, bh - 6);
+        ctx.fillRect(px + ts - 8, baseY + 3, 2, bh - 6);
+        ctx.fillRect(px + ts / 2 - 1, baseY + 3, 2, bh - 6);
+        // Окна
+        this.drawWindowGrid(ctx, b, px + 9, baseY + 6, 2, 2, 7, (bh - 14) / 2, lit);
+        // Символ ₽
+        if (MapSystem.camera.zoom > 1) {
+            ctx.font = '7px sans-serif';
+            ctx.fillStyle = '#8a7a5a';
+            ctx.fillText('₽', px + ts / 2 - 3, baseY - 1);
+        }
+    },
+
+    // --- ПРОМЫШЛЕННЫЕ ---
+    drawFactory(ctx, b, px, py, ts, lit) {
+        // Завод с трубами
+        const bh = ts * 0.6;
+        const baseY = py + ts - bh;
+        // Корпус
+        ctx.fillStyle = '#5a5a6a';
+        ctx.fillRect(px + 2, baseY, ts - 4, bh - 2);
+        // Крыша-зигзаг
+        ctx.fillStyle = '#4a4a5a';
+        ctx.beginPath();
+        ctx.moveTo(px + 2, baseY);
+        ctx.lineTo(px + ts * 0.33, baseY - 6);
+        ctx.lineTo(px + ts * 0.5, baseY);
+        ctx.lineTo(px + ts * 0.75, baseY - 6);
+        ctx.lineTo(px + ts - 2, baseY);
+        ctx.closePath();
+        ctx.fill();
+        // Труба с дымом
+        ctx.fillStyle = '#7a7a8a';
+        ctx.fillRect(px + ts - 10, baseY - 12, 5, 14);
+        // Дым (анимированный)
+        const smokeAlpha = 0.2 + Math.sin(this.time * 2 + b.id) * 0.1;
+        ctx.fillStyle = `rgba(150, 150, 160, ${smokeAlpha})`;
+        ctx.beginPath();
+        ctx.arc(px + ts - 8 + Math.sin(this.time + b.id) * 2, baseY - 16, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(px + ts - 6 + Math.sin(this.time * 0.7 + b.id) * 3, baseY - 22, 3, 0, Math.PI * 2);
+        ctx.fill();
+        // Ворота
+        ctx.fillStyle = '#3a3a4a';
+        ctx.fillRect(px + 5, baseY + bh - 10, 10, 8);
+    },
+
+    drawWarehouse(ctx, b, px, py, ts, lit) {
+        // Склад — длинное здание
+        const bh = ts * 0.5;
+        const baseY = py + ts - bh;
+        // Стены
+        ctx.fillStyle = '#7a8a7a';
+        ctx.fillRect(px + 2, baseY, ts - 4, bh - 2);
+        // Крыша полукруглая
+        ctx.fillStyle = '#6a7a6a';
+        ctx.beginPath();
+        ctx.ellipse(px + ts / 2, baseY, (ts - 4) / 2, 5, 0, Math.PI, 0);
+        ctx.fill();
+        // Ворота-роллеты
+        ctx.fillStyle = '#4a5a4a';
+        ctx.fillRect(px + 5, baseY + 4, ts * 0.35, bh - 8);
+        ctx.fillRect(px + ts * 0.55, baseY + 4, ts * 0.35, bh - 8);
+        // Полоски роллет
+        ctx.strokeStyle = '#5a6a5a';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 3; i++) {
+            const gy = baseY + 6 + i * 4;
+            ctx.beginPath(); ctx.moveTo(px + 5, gy); ctx.lineTo(px + 5 + ts * 0.35, gy); ctx.stroke();
+        }
+    },
+
+    drawWorkshop(ctx, b, px, py, ts, lit) {
+        // Мастерская
+        const bh = ts * 0.55;
+        const baseY = py + ts - bh;
+        ctx.fillStyle = '#8a7060';
+        ctx.fillRect(px + 3, baseY, ts - 6, bh - 2);
+        // Крыша
+        ctx.fillStyle = '#6a5040';
+        ctx.fillRect(px + 1, baseY - 2, ts - 2, 3);
+        // Окно
+        const wc = lit ? 'rgba(255, 200, 100, 0.7)' : 'rgba(40, 50, 60, 0.5)';
+        ctx.fillStyle = wc;
+        ctx.fillRect(px + 6, baseY + 4, ts - 12, 6);
+        // Дверь
+        ctx.fillStyle = '#4a3020';
+        ctx.fillRect(px + ts / 2 - 4, baseY + bh - 10, 8, 8);
+        // Вывеска-инструмент
+        ctx.fillStyle = '#ffaa00';
+        ctx.fillRect(px + ts / 2 - 2, baseY - 5, 4, 3);
+    },
+
+    // --- ГОСУДАРСТВЕННЫЕ ---
+    drawSchool(ctx, b, px, py, ts, lit) {
+        const bh = ts * 0.7;
+        const baseY = py + ts - bh;
+        // Здание
+        ctx.fillStyle = '#b8a890';
+        ctx.fillRect(px + 2, baseY, ts - 4, bh - 2);
+        // Крыша
+        ctx.fillStyle = '#7a6a5a';
+        ctx.fillRect(px + 1, baseY - 2, ts - 2, 3);
+        // Окна в ряд (много!)
+        this.drawWindowGrid(ctx, b, px + 5, baseY + 5, 4, 2, 6, (bh - 12) / 2, lit);
+        // Флагшток
+        ctx.fillStyle = '#888';
+        ctx.fillRect(px + ts - 6, baseY - 10, 1, 12);
+        // Флаг
+        ctx.fillStyle = '#3366cc';
+        ctx.fillRect(px + ts - 5, baseY - 10, 5, 3);
+        // Двор/площадка
+        ctx.fillStyle = '#8a9070';
+        ctx.fillRect(px + 5, py + ts - 4, ts - 10, 3);
+    },
+
+    drawHospital(ctx, b, px, py, ts, lit) {
+        const bh = ts * 0.8;
+        const baseY = py + ts - bh;
+        // Здание
+        ctx.fillStyle = '#e8e8f0';
+        ctx.fillRect(px + 2, baseY, ts - 4, bh - 2);
+        // Крест
+        ctx.fillStyle = '#dd3333';
+        ctx.fillRect(px + ts / 2 - 3, baseY + 3, 6, 2);
+        ctx.fillRect(px + ts / 2 - 1, baseY + 1, 2, 6);
+        // Окна
+        this.drawWindowGrid(ctx, b, px + 5, baseY + 10, 3, 3, 6, (bh - 16) / 3, lit);
+        // Вход с козырьком
+        ctx.fillStyle = '#ccc';
+        ctx.fillRect(px + ts / 2 - 6, baseY + bh - 10, 12, 2);
+        ctx.fillStyle = '#aaa';
+        ctx.fillRect(px + ts / 2 - 4, baseY + bh - 8, 8, 6);
+    },
+
+    drawAdmin(ctx, b, px, py, ts, lit) {
+        const bh = ts * 0.75;
+        const baseY = py + ts - bh;
+        // Солидное здание
+        ctx.fillStyle = '#d0c8b8';
+        ctx.fillRect(px + 2, baseY, ts - 4, bh - 2);
+        // Карниз
+        ctx.fillStyle = '#a09888';
+        ctx.fillRect(px + 1, baseY - 2, ts - 2, 3);
+        ctx.fillRect(px + 1, baseY + bh * 0.5, ts - 2, 2);
+        // Колонны
+        ctx.fillStyle = '#b8b0a0';
+        for (let i = 0; i < 3; i++) {
+            ctx.fillRect(px + 6 + i * 9, baseY + 3, 2, bh - 6);
+        }
+        // Окна
+        this.drawWindowGrid(ctx, b, px + 9, baseY + 6, 2, 2, 8, (bh - 14) / 2, lit);
+        // Флаг
+        ctx.fillStyle = '#888';
+        ctx.fillRect(px + 5, baseY - 8, 1, 10);
+        ctx.fillStyle = '#cc3333';
+        ctx.fillRect(px + 6, baseY - 8, 5, 3);
+    },
+
+    // --- GENERIC ---
+    drawGenericBuilding(ctx, b, px, py, ts, lit) {
+        const bh = ts * (b.height || 0.6);
+        const baseY = py + ts - bh;
+        ctx.fillStyle = b.color || '#4a6fa5';
+        ctx.fillRect(px + 2, baseY, ts - 4, bh - 2);
+        ctx.fillStyle = this.darkenColor(b.color || '#4a6fa5', 0.3);
+        ctx.fillRect(px + 1, baseY - 2, ts - 2, 3);
+        this.drawWindowGrid(ctx, b, px + 5, baseY + 4, 3, 2, 7, (bh - 10) / 2, lit);
+    },
+
+    // --- УТИЛИТА: СЕТКА ОКОН ---
+    drawWindowGrid(ctx, b, startX, startY, cols, rows, spacingX, spacingY, lit) {
+        for (let wy = 0; wy < rows; wy++) {
+            for (let wx = 0; wx < cols; wx++) {
+                const winX = startX + wx * spacingX;
+                const winY = startY + wy * spacingY;
+                let windowColor;
+                if (lit) {
+                    const on = Math.sin(this.time * 2 + wx * 3.7 + wy * 5.1 + b.id * 1.3) > -0.3;
+                    if (on) {
+                        const warm = Math.sin(this.time * 1.5 + wx + wy + b.id) * 0.15;
+                        windowColor = `rgba(255, 235, 140, ${0.6 + warm})`;
+                    } else {
+                        windowColor = 'rgba(30, 50, 80, 0.5)';
+                    }
+                } else {
+                    windowColor = 'rgba(30, 50, 80, 0.5)';
+                }
+                ctx.fillStyle = windowColor;
+                ctx.fillRect(winX, winY, 4, 4);
+            }
         }
     },
 
@@ -733,6 +1102,161 @@ const Renderer = {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
         ctx.lineWidth = 1;
         ctx.strokeRect(camX, camY, camW, camH);
+    },
+
+    // ==========================================
+    // МАШИНКИ НА ДОРОГАХ
+    // ==========================================
+    cars: [],
+    carSpawnTimer: 0,
+
+    renderCars(ctx) {
+        const ts = MapSystem.tileSize;
+        this.carSpawnTimer += 0.016;
+
+        // Спавним новые машинки
+        if (this.carSpawnTimer > 2 && this.cars.length < 15) {
+            this.carSpawnTimer = 0;
+            this.spawnCar();
+        }
+
+        // Обновляем и рисуем
+        for (let i = this.cars.length - 1; i >= 0; i--) {
+            const car = this.cars[i];
+            car.x += car.vx * car.speed;
+            car.y += car.vy * car.speed;
+
+            // Удаляем если вышла за карту
+            if (car.x < -2 || car.x > MapSystem.gridWidth + 2 ||
+                car.y < -2 || car.y > MapSystem.gridHeight + 2) {
+                this.cars.splice(i, 1);
+                continue;
+            }
+
+            const px = car.x * ts;
+            const py = car.y * ts;
+
+            // Корпус
+            ctx.fillStyle = car.color;
+            if (car.vx !== 0) {
+                // Горизонтальная
+                ctx.fillRect(px - 5, py + ts * 0.35, 10, 5);
+                // Окна
+                ctx.fillStyle = 'rgba(150, 200, 255, 0.5)';
+                ctx.fillRect(px - 2, py + ts * 0.35, 3, 4);
+                // Фары
+                ctx.fillStyle = car.vx > 0 ? 'rgba(255,255,200,0.8)' : 'rgba(255,50,50,0.6)';
+                ctx.fillRect(car.vx > 0 ? px + 4 : px - 5, py + ts * 0.37, 2, 2);
+            } else {
+                // Вертикальная
+                ctx.fillRect(px + ts * 0.35, py - 5, 5, 10);
+                ctx.fillStyle = 'rgba(150, 200, 255, 0.5)';
+                ctx.fillRect(px + ts * 0.36, py - 2, 4, 3);
+                ctx.fillStyle = car.vy > 0 ? 'rgba(255,255,200,0.8)' : 'rgba(255,50,50,0.6)';
+                ctx.fillRect(px + ts * 0.37, car.vy > 0 ? py + 4 : py - 5, 2, 2);
+            }
+        }
+    },
+
+    spawnCar() {
+        const roadTiles = [];
+        const zones = MapSystem.zones.filter(z => z.unlocked);
+        for (const zone of zones) {
+            for (let y = zone.y; y < zone.y + zone.h; y++) {
+                for (let x = zone.x; x < zone.x + zone.w; x++) {
+                    const tile = MapSystem.tiles[y]?.[x];
+                    if (tile && tile.road) roadTiles.push({ x, y });
+                }
+            }
+        }
+
+        if (roadTiles.length === 0) return;
+
+        const start = roadTiles[Math.floor(Math.random() * roadTiles.length)];
+        const colors = ['#cc3333', '#3366cc', '#33aa33', '#dddd33', '#8833aa', '#ff8833', '#333333', '#eeeeee'];
+
+        // Определяем направление по соседним дорогам
+        let vx = 0, vy = 0;
+        const up = MapSystem.getTile(start.x, start.y - 1);
+        const down = MapSystem.getTile(start.x, start.y + 1);
+        const left = MapSystem.getTile(start.x - 1, start.y);
+        const right = MapSystem.getTile(start.x + 1, start.y);
+
+        if (left && left.road && right && right.road) {
+            vx = Math.random() > 0.5 ? 1 : -1;
+        } else if (up && up.road && down && down.road) {
+            vy = Math.random() > 0.5 ? 1 : -1;
+        } else {
+            vx = Math.random() > 0.5 ? 1 : -1;
+        }
+
+        this.cars.push({
+            x: start.x + 0.5,
+            y: start.y + 0.5,
+            vx, vy,
+            speed: 0.01 + Math.random() * 0.015,
+            color: colors[Math.floor(Math.random() * colors.length)],
+        });
+    },
+
+    // ==========================================
+    // СЕЗОННЫЙ ОВЕРЛЕЙ
+    // ==========================================
+    renderSeasonOverlay(ctx, W, H) {
+        const month = Game.time.month;
+        let season = 'summer';
+        if (month >= 3 && month <= 5) season = 'spring';
+        else if (month >= 6 && month <= 8) season = 'summer';
+        else if (month >= 9 && month <= 11) season = 'autumn';
+        else season = 'winter';
+
+        switch (season) {
+            case 'spring':
+                // Лёгкий зелёный оттенок
+                ctx.fillStyle = 'rgba(50, 180, 80, 0.02)';
+                ctx.fillRect(0, 0, W, H);
+                break;
+
+            case 'summer':
+                // Тёплый оттенок
+                ctx.fillStyle = 'rgba(255, 200, 50, 0.015)';
+                ctx.fillRect(0, 0, W, H);
+                break;
+
+            case 'autumn':
+                // Оранжевый оттенок + падающие листья
+                ctx.fillStyle = 'rgba(200, 100, 30, 0.025)';
+                ctx.fillRect(0, 0, W, H);
+                // Листья
+                ctx.fillStyle = 'rgba(200, 120, 30, 0.3)';
+                for (let i = 0; i < 12; i++) {
+                    const lx = ((this.time * 20 + i * 97) % W);
+                    const ly = ((this.time * 40 + i * 67) % H);
+                    const rot = this.time * 2 + i;
+                    ctx.save();
+                    ctx.translate(lx, ly);
+                    ctx.rotate(rot);
+                    ctx.fillRect(-2, -1, 4, 2);
+                    ctx.restore();
+                }
+                break;
+
+            case 'winter':
+                // Голубоватый оттенок + снег
+                ctx.fillStyle = 'rgba(100, 150, 230, 0.03)';
+                ctx.fillRect(0, 0, W, H);
+                // Снежинки
+                ctx.fillStyle = 'rgba(220, 230, 255, 0.5)';
+                for (let i = 0; i < 30; i++) {
+                    const sx = ((this.time * 15 + i * 73 + Math.sin(i * 2.3) * 50) % W);
+                    const sy = ((this.time * 25 + i * 51) % H);
+                    const size = 1 + (i % 3);
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                break;
+        }
     },
 
     // ==========================================

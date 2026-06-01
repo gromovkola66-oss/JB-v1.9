@@ -242,6 +242,15 @@ const Infrastructure = {
         Game.stats.cableLayedKm += fullPath.length * 0.032; // тайл = 32м
         UI.notify(`Проложен ${type.name} (${fullPath.length} тайлов)`, 'success');
 
+        // Эффект строительства — частицы вдоль кабеля
+        for (let i = 0; i < Math.min(fullPath.length, 10); i++) {
+            const p = fullPath[Math.floor(i * fullPath.length / 10)];
+            Renderer.spawnParticles(p.x, p.y, type.color, 3);
+        }
+
+        // Туториал
+        Tutorial.trigger('cable_placed');
+
         this.cancelCable();
     },
 
@@ -335,6 +344,9 @@ const Infrastructure = {
         this.towers.push(tower);
         Game.stats.towersBuilt++;
 
+        // Эффект строительства — частицы
+        Renderer.spawnParticles(x, y, '#00bcd4', 8);
+
         this.updateConnections();
         UI.notify(`Установлена ${type.name}`, 'success');
         return true;
@@ -381,6 +393,10 @@ const Infrastructure = {
         };
 
         this.nodes.push(node);
+        // Эффект строительства
+        Renderer.spawnParticles(x, y, '#4a6a8a', 6);
+        // Туториал
+        Tutorial.trigger('node_placed');
         this.updateConnections();
         UI.notify(`Установлен ${type.name}`, 'success');
         return true;

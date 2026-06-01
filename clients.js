@@ -311,6 +311,11 @@ const Clients = {
         Game.state.totalClients++;
         Game.stats.clientsEverConnected++;
 
+        // Туториал: первый клиент
+        if (Game.stats.clientsEverConnected === 1) {
+            Tutorial.trigger('first_client');
+        }
+
         // Сарафанное радио — увеличиваем спрос здания
         building.demandLevel = Math.min(1, building.demandLevel + 0.05);
     },
