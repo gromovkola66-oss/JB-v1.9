@@ -1,170 +1,300 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lighthouse Keeper</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: #0a0a1a;
-            overflow: hidden;
-            font-family: 'Georgia', serif;
-            cursor: none;
-        }
-
-        canvas {
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        #gameCanvas {
-            z-index: 1;
-        }
-
-        #uiCanvas {
-            z-index: 2;
-            pointer-events: none;
-        }
-
-        #cursor {
-            position: fixed;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 220, 100, 0.8);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 100;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px rgba(255, 220, 100, 0.4);
-        }
-
-        #startScreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(ellipse at center bottom, #0d1b2a 0%, #050a14 100%);
-        }
-
-        #startScreen h1 {
-            font-size: 4em;
-            color: #ffd700;
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3);
-            margin-bottom: 10px;
-            letter-spacing: 3px;
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        #startScreen p {
-            color: #8899aa;
-            font-size: 1.2em;
-            margin-bottom: 40px;
-            font-style: italic;
-        }
-
-        #startBtn {
-            padding: 15px 50px;
-            font-size: 1.3em;
-            font-family: 'Georgia', serif;
-            background: transparent;
-            border: 2px solid #ffd700;
-            color: #ffd700;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            letter-spacing: 2px;
-        }
-
-        #startBtn:hover {
-            background: rgba(255, 215, 0, 0.15);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-            transform: scale(1.05);
-        }
-
-        #gameOverScreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 50;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: rgba(5, 5, 15, 0.95);
-        }
-
-        #gameOverScreen h1 {
-            font-size: 3em;
-            color: #ff4444;
-            text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
-            margin-bottom: 10px;
-        }
-
-        #gameOverScreen .score {
-            font-size: 1.5em;
-            color: #ffd700;
-            margin-bottom: 30px;
-        }
-
-        #restartBtn {
-            padding: 15px 50px;
-            font-size: 1.3em;
-            font-family: 'Georgia', serif;
-            background: transparent;
-            border: 2px solid #ffd700;
-            color: #ffd700;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            letter-spacing: 2px;
-        }
-
-        #restartBtn:hover {
-            background: rgba(255, 215, 0, 0.15);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-            transform: scale(1.05);
-        }
-
-        @keyframes glow {
-            from { text-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3); }
-            to { text-shadow: 0 0 40px rgba(255, 215, 0, 0.8), 0 0 80px rgba(255, 215, 0, 0.5); }
-        }
-    </style>
+    <title>Internet Provider Tycoon</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="cursor"></div>
-    
-    <div id="startScreen">
-        <h1>LIGHTHOUSE KEEPER</h1>
-        <p>Guide the ships. Beware the deep.</p>
-        <button id="startBtn">SET SAIL</button>
+    <!-- ГЛАВНОЕ МЕНЮ -->
+    <div id="mainMenu" class="screen active">
+        <div class="menu-bg"></div>
+        <div class="menu-content">
+            <h1 class="game-title">INTERNET<br><span>PROVIDER</span><br>TYCOON</h1>
+            <p class="subtitle">Построй свою телеком-империю</p>
+            <div class="menu-buttons">
+                <button class="btn btn-primary" onclick="UI.showNewGame()">Новая игра</button>
+                <button class="btn btn-secondary" onclick="UI.showLoadGame()">Загрузить</button>
+                <button class="btn btn-secondary" onclick="UI.showSettings()">Настройки</button>
+            </div>
+            <div class="version">v0.1.0 Alpha</div>
+        </div>
     </div>
 
-    <div id="gameOverScreen">
-        <h1>LOST AT SEA</h1>
-        <p class="score">Ships Saved: <span id="finalScore">0</span></p>
-        <button id="restartBtn">TRY AGAIN</button>
+    <!-- ЭКРАН НОВОЙ ИГРЫ -->
+    <div id="newGameScreen" class="screen">
+        <div class="panel-large">
+            <h2>Новая игра</h2>
+            <div class="form-group">
+                <label>Название компании:</label>
+                <input type="text" id="companyName" placeholder="NetLink" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>Имя директора:</label>
+                <input type="text" id="playerName" placeholder="Иван" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>Сложность:</label>
+                <div class="difficulty-select">
+                    <button class="diff-btn" data-diff="easy" onclick="UI.selectDifficulty('easy')">
+                        <span class="diff-icon">🟢</span>
+                        <span class="diff-name">Лёгкая</span>
+                        <span class="diff-desc">Больше денег, клиенты терпеливые</span>
+                    </button>
+                    <button class="diff-btn selected" data-diff="normal" onclick="UI.selectDifficulty('normal')">
+                        <span class="diff-icon">🟡</span>
+                        <span class="diff-name">Нормальная</span>
+                        <span class="diff-desc">Сбалансированный опыт</span>
+                    </button>
+                    <button class="diff-btn" data-diff="hard" onclick="UI.selectDifficulty('hard')">
+                        <span class="diff-icon">🔴</span>
+                        <span class="diff-name">Хардкор</span>
+                        <span class="diff-desc">Жёсткие конкуренты, мало денег</span>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Слот сохранения:</label>
+                <div class="save-slots">
+                    <button class="slot-btn selected" data-slot="1" onclick="UI.selectSlot(1)">Слот 1</button>
+                    <button class="slot-btn" data-slot="2" onclick="UI.selectSlot(2)">Слот 2</button>
+                    <button class="slot-btn" data-slot="3" onclick="UI.selectSlot(3)">Слот 3</button>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="Game.startNew()">Начать</button>
+                <button class="btn btn-secondary" onclick="UI.showMainMenu()">Назад</button>
+            </div>
+        </div>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
-    <canvas id="uiCanvas"></canvas>
+    <!-- ЭКРАН ЗАГРУЗКИ -->
+    <div id="loadGameScreen" class="screen">
+        <div class="panel-large">
+            <h2>Загрузить игру</h2>
+            <div id="saveSlotsList" class="save-slots-list"></div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="UI.showMainMenu()">Назад</button>
+            </div>
+        </div>
+    </div>
 
-    <script src="game.js"></script>
+    <!-- ИГРОВОЙ ЭКРАН -->
+    <div id="gameScreen" class="screen">
+        <!-- Верхняя панель -->
+        <div id="topBar">
+            <div class="top-left">
+                <div class="company-info">
+                    <span id="companyNameDisplay" class="company-name">NetLink</span>
+                    <span id="eraDisplay" class="era-badge">Эпоха: Dial-up</span>
+                </div>
+            </div>
+            <div class="top-center">
+                <div class="resource-bar">
+                    <div class="resource" title="Деньги">
+                        <span class="res-icon">💰</span>
+                        <span id="moneyDisplay">50,000 ₽</span>
+                    </div>
+                    <div class="resource" title="Клиенты">
+                        <span class="res-icon">👥</span>
+                        <span id="clientsDisplay">0</span>
+                    </div>
+                    <div class="resource" title="Доход/мес">
+                        <span class="res-icon">📈</span>
+                        <span id="incomeDisplay">+0 ₽</span>
+                    </div>
+                    <div class="resource" title="Uptime">
+                        <span class="res-icon">📶</span>
+                        <span id="uptimeDisplay">100%</span>
+                    </div>
+                    <div class="resource" title="Репутация">
+                        <span class="res-icon">⭐</span>
+                        <span id="reputationDisplay">50</span>
+                    </div>
+                </div>
+            </div>
+            <div class="top-right">
+                <div class="time-controls">
+                    <span id="dateDisplay" class="game-date">Янв 2005</span>
+                    <button class="time-btn" id="pauseBtn" onclick="Game.togglePause()" title="Пауза">⏸</button>
+                    <button class="time-btn active" id="speed1Btn" onclick="Game.setSpeed(1)" title="x1">▶</button>
+                    <button class="time-btn" id="speed2Btn" onclick="Game.setSpeed(2)" title="x2">▶▶</button>
+                    <button class="time-btn" id="speed5Btn" onclick="Game.setSpeed(5)" title="x5">▶▶▶</button>
+                </div>
+                <button class="btn-icon" onclick="UI.showGameMenu()" title="Меню">☰</button>
+            </div>
+        </div>
+
+        <!-- Канвас карты -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Левая панель инструментов -->
+        <div id="toolPanel">
+            <div class="tool-group">
+                <span class="tool-label">Строительство</span>
+                <button class="tool-btn" data-tool="cable" onclick="UI.selectTool('cable')" title="Проложить кабель">
+                    <span class="tool-icon">🔌</span>
+                </button>
+                <button class="tool-btn" data-tool="tower" onclick="UI.selectTool('tower')" title="Установить вышку">
+                    <span class="tool-icon">📡</span>
+                </button>
+                <button class="tool-btn" data-tool="node" onclick="UI.selectTool('node')" title="Узел связи">
+                    <span class="tool-icon">🖥️</span>
+                </button>
+                <button class="tool-btn" data-tool="datacenter" onclick="UI.selectTool('datacenter')" title="Дата-центр">
+                    <span class="tool-icon">🏢</span>
+                </button>
+            </div>
+            <div class="tool-group">
+                <span class="tool-label">Управление</span>
+                <button class="tool-btn" data-tool="select" onclick="UI.selectTool('select')" title="Выбрать">
+                    <span class="tool-icon">🖱️</span>
+                </button>
+                <button class="tool-btn" data-tool="demolish" onclick="UI.selectTool('demolish')" title="Снести">
+                    <span class="tool-icon">🗑️</span>
+                </button>
+                <button class="tool-btn" data-tool="upgrade" onclick="UI.selectTool('upgrade')" title="Улучшить">
+                    <span class="tool-icon">⬆️</span>
+                </button>
+            </div>
+            <div class="tool-group">
+                <span class="tool-label">Зум</span>
+                <button class="tool-btn" onclick="MapSystem.zoomIn()" title="Приблизить">
+                    <span class="tool-icon">🔍+</span>
+                </button>
+                <button class="tool-btn" onclick="MapSystem.zoomOut()" title="Отдалить">
+                    <span class="tool-icon">🔍-</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Нижняя панель вкладок -->
+        <div id="bottomPanel">
+            <div class="tab-bar">
+                <button class="tab-btn active" data-tab="overview" onclick="UI.switchTab('overview')">Обзор</button>
+                <button class="tab-btn" data-tab="tariffs" onclick="UI.switchTab('tariffs')">Тарифы</button>
+                <button class="tab-btn" data-tab="staff" onclick="UI.switchTab('staff')">Персонал</button>
+                <button class="tab-btn" data-tab="tech" onclick="UI.switchTab('tech')">Технологии</button>
+                <button class="tab-btn" data-tab="finance" onclick="UI.switchTab('finance')">Финансы</button>
+                <button class="tab-btn" data-tab="competitors" onclick="UI.switchTab('competitors')">Конкуренты</button>
+            </div>
+            <div class="tab-content">
+                <!-- Обзор -->
+                <div id="tab-overview" class="tab-pane active">
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <h4>Клиенты</h4>
+                            <div id="overviewClients" class="big-number">0</div>
+                            <div id="overviewClientsChange" class="change positive">+0 за месяц</div>
+                        </div>
+                        <div class="overview-card">
+                            <h4>Покрытие</h4>
+                            <div id="overviewCoverage" class="big-number">0%</div>
+                            <div class="change neutral">территории</div>
+                        </div>
+                        <div class="overview-card">
+                            <h4>Средняя скорость</h4>
+                            <div id="overviewSpeed" class="big-number">0 Мбит</div>
+                            <div class="change neutral">по сети</div>
+                        </div>
+                        <div class="overview-card">
+                            <h4>Удовлетворённость</h4>
+                            <div id="overviewSatisfaction" class="big-number">—</div>
+                            <div class="change neutral">нет данных</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Тарифы -->
+                <div id="tab-tariffs" class="tab-pane">
+                    <div class="tariffs-header">
+                        <h4>Ваши тарифы</h4>
+                        <button class="btn btn-small" onclick="UI.showCreateTariff()">+ Создать тариф</button>
+                    </div>
+                    <div id="tariffsList" class="tariffs-list"></div>
+                </div>
+                <!-- Персонал -->
+                <div id="tab-staff" class="tab-pane">
+                    <div class="staff-header">
+                        <h4>Сотрудники</h4>
+                        <button class="btn btn-small" onclick="UI.showHireStaff()">+ Нанять</button>
+                    </div>
+                    <div id="staffList" class="staff-list"></div>
+                </div>
+                <!-- Технологии -->
+                <div id="tab-tech" class="tab-pane">
+                    <div id="techTree" class="tech-tree"></div>
+                </div>
+                <!-- Финансы -->
+                <div id="tab-finance" class="tab-pane">
+                    <div class="finance-grid">
+                        <div class="finance-card income">
+                            <h4>Доход</h4>
+                            <div id="financeIncome" class="big-number">0 ₽/мес</div>
+                        </div>
+                        <div class="finance-card expense">
+                            <h4>Расходы</h4>
+                            <div id="financeExpense" class="big-number">0 ₽/мес</div>
+                        </div>
+                        <div class="finance-card profit">
+                            <h4>Прибыль</h4>
+                            <div id="financeProfit" class="big-number">0 ₽/мес</div>
+                        </div>
+                    </div>
+                    <div id="financeHistory" class="finance-chart"></div>
+                </div>
+                <!-- Конкуренты -->
+                <div id="tab-competitors" class="tab-pane">
+                    <div id="competitorsList" class="competitors-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Мини-карта -->
+        <div id="minimap">
+            <canvas id="minimapCanvas" width="180" height="140"></canvas>
+        </div>
+
+        <!-- Панель уведомлений -->
+        <div id="notifications"></div>
+
+        <!-- Советник -->
+        <div id="advisor" class="advisor-hidden">
+            <div class="advisor-avatar">💡</div>
+            <div class="advisor-message">
+                <p id="advisorText"></p>
+                <button class="btn-small" onclick="UI.dismissAdvisor()">Понятно</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНЫЕ ОКНА -->
+    <div id="modalOverlay" class="modal-overlay hidden">
+        <div id="modalContent" class="modal-content"></div>
+    </div>
+
+    <!-- ИГРОВОЕ МЕНЮ (ПАУЗА) -->
+    <div id="gameMenuOverlay" class="modal-overlay hidden">
+        <div class="pause-menu">
+            <h2>Меню</h2>
+            <button class="btn btn-secondary" onclick="Game.save()">💾 Сохранить</button>
+            <button class="btn btn-secondary" onclick="UI.showSettings()">⚙️ Настройки</button>
+            <button class="btn btn-secondary" onclick="UI.closeGameMenu()">▶ Продолжить</button>
+            <button class="btn btn-danger" onclick="Game.exitToMenu()">🚪 В главное меню</button>
+        </div>
+    </div>
+
+    <!-- Скрипты -->
+    <script src="core.js"></script>
+    <script src="map.js"></script>
+    <script src="render.js"></script>
+    <script src="infrastructure.js"></script>
+    <script src="economy.js"></script>
+    <script src="clients.js"></script>
+    <script src="ai.js"></script>
+    <script src="tech.js"></script>
+    <script src="events.js"></script>
+    <script src="ui.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
