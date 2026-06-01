@@ -209,8 +209,9 @@ const Game = {
         this.time.totalDays++;
 
         // Новый месяц
-        const daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
-        if (this.time.day > daysInMonth[this.time.month - 1]) {
+        const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        const monthIndex = Math.max(0, Math.min(11, this.time.month - 1));
+        if (this.time.day > daysInMonth[monthIndex]) {
             this.time.day = 1;
             this.advanceMonth();
         }

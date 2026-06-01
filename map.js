@@ -380,8 +380,8 @@ const MapSystem = {
         const cx = screenX - rect.left;
         const cy = screenY - rect.top;
 
-        const worldX = (cx / this.camera.zoom) + this.camera.x / this.camera.zoom;
-        const worldY = (cy / this.camera.zoom) + this.camera.y / this.camera.zoom;
+        const worldX = (cx / this.camera.zoom) + this.camera.x;
+        const worldY = (cy / this.camera.zoom) + this.camera.y;
 
         return {
             x: Math.floor(worldX / this.tileSize),

@@ -311,7 +311,7 @@ const Renderer = {
         const ts = MapSystem.tileSize;
 
         for (const cable of Infrastructure.cables) {
-            if (!cable.active && cable.health > 0) continue;
+            if (!cable.active) continue;
             const type = Infrastructure.CABLE_TYPES[cable.type];
             if (!type) continue;
 

@@ -353,12 +353,13 @@ const Events = {
 
         if (Math.random() > baseChance) return;
 
-        // Выбираем случайное подходящее событие
+        // Выбираем случайное подходящее событие (без вызова effect — он только в triggerEvent)
         const eligible = this.EVENT_POOL.filter(ev => {
             if (Game.state.totalClients < ev.minClients) return false;
             // Не повторяем недавние
             const recent = this.eventHistory.slice(-5);
             if (recent.find(h => h.id === ev.id)) return false;
+            // Только шанс, без side-effects
             return Math.random() < ev.chance;
         });
 

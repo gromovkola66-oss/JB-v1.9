@@ -139,7 +139,7 @@ const Clients = {
 
         const marketingEffect = Economy.getMarketingEffectiveness();
         const reputationEffect = Game.state.reputation / 100;
-        const coverageEffect = (Game.state.coverage || 0) / 100;
+        const coverageEffect = Math.max(0.1, (Game.state.coverage || 0) / 100); // Минимум 0.1 чтобы первые клиенты могли появиться
 
         const baseChance = 0.01; // 1% за тик
         const totalChance = baseChance * (1 + marketingEffect) * reputationEffect * coverageEffect;

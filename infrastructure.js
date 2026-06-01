@@ -510,6 +510,8 @@ const Infrastructure = {
             building.connected = false;
             building.connectionType = null;
             building.connectionSpeed = 0;
+            building.cableId = null;
+            building.towerId = null;
         }
 
         // Кабельные подключения
@@ -521,7 +523,8 @@ const Infrastructure = {
                 // Ищем здания рядом с кабелем
                 const nearby = MapSystem.getBuildingsInRadius(point.x, point.y, 1.5);
                 for (const building of nearby) {
-                    if (!building.connected) {
+                    // Берём лучшую скорость если уже подключено
+                    if (!building.connected || type.speed > building.connectionSpeed) {
                         building.connected = true;
                         building.connectionType = 'cable';
                         building.connectionSpeed = type.speed;
@@ -531,16 +534,16 @@ const Infrastructure = {
             }
         }
 
-        // Беспроводные подключения (вышки)
+        // Беспроводные подключения (вышки) — только если лучше текущего
         for (const tower of this.towers) {
             if (!tower.active) continue;
             const nearby = MapSystem.getBuildingsInRadius(tower.x, tower.y, tower.radius);
             for (const building of nearby) {
-                if (!building.connected) {
+                if (!building.connected || tower.speed > building.connectionSpeed) {
                     building.connected = true;
-                    building.connectionType = 'wireless';
-                    building.connectionSpeed = tower.speed;
-                    building.towerId = tower.id;
+                    building.connectionType = building.connectionSpeed > 0 && building.connectionType === 'cable' && building.connectionSpeed >= tower.speed ? 'cable' : 'wireless';
+                    building.connectionSpeed = Math.max(building.connectionSpeed, tower.speed);
+                    if (building.connectionType === 'wireless') building.towerId = tower.id;
                 }
             }
         }
