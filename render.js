@@ -237,6 +237,7 @@ const Renderer = {
     },
 
     renderBuilding(ctx, building, px, py, ts) {
+        const cam = MapSystem.camera;
         const h = building.height;
         const bh = ts * h; // высота здания визуально
 
@@ -279,7 +280,7 @@ const Renderer = {
         }
 
         // Индикатор подключения
-        if (building.connected && cam.zoom > 0.5) {
+        if (building.connected && MapSystem.camera.zoom > 0.5) {
             ctx.beginPath();
             ctx.arc(px + ts - 5, py + 5, 3, 0, Math.PI * 2);
             ctx.fillStyle = building.connectedClients > 0 ? '#4caf50' : '#ff9800';
@@ -287,7 +288,7 @@ const Renderer = {
         }
 
         // Индикатор спроса (если не подключено)
-        if (!building.connected && building.demandLevel > 0.5 && cam.zoom > 0.6) {
+        if (!building.connected && building.demandLevel > 0.5 && MapSystem.camera.zoom > 0.6) {
             const pulse = Math.sin(this.time * 4) * 0.3 + 0.7;
             ctx.beginPath();
             ctx.arc(px + ts / 2, py - 3, 3, 0, Math.PI * 2);
@@ -407,20 +408,43 @@ const Renderer = {
                 ctx.stroke();
             }
 
-            // Вышка
-            ctx.fillStyle = '#667';
-            ctx.fillRect(px + ts * 0.45, py + ts * 0.2, ts * 0.1, ts * 0.7);
+            // База вышки (платформа)
+            ctx.fillStyle = '#3a4a5a';
+            ctx.fillRect(px + ts * 0.25, py + ts * 0.82, ts * 0.5, ts * 0.12);
 
-            // Антенна
-            ctx.fillStyle = '#aab';
-            ctx.fillRect(px + ts * 0.35, py + ts * 0.1, ts * 0.3, ts * 0.08);
+            // Столб вышки
+            ctx.fillStyle = '#667788';
+            ctx.fillRect(px + ts * 0.46, py + ts * 0.15, ts * 0.08, ts * 0.67);
 
-            // Индикатор
-            const blink = Math.sin(this.time * 5) > 0;
+            // Поперечные балки
+            ctx.strokeStyle = '#556677';
+            ctx.lineWidth = 1;
+            for (let b = 0; b < 3; b++) {
+                const by = py + ts * 0.3 + b * ts * 0.18;
+                ctx.beginPath();
+                ctx.moveTo(px + ts * 0.35, by);
+                ctx.lineTo(px + ts * 0.65, by);
+                ctx.stroke();
+            }
+
+            // Антенна сверху
+            ctx.fillStyle = '#aabbcc';
+            ctx.fillRect(px + ts * 0.42, py + ts * 0.08, ts * 0.16, ts * 0.05);
+            ctx.fillRect(px + ts * 0.48, py + ts * 0.03, ts * 0.04, ts * 0.1);
+
+            // Мигающий красный индикатор наверху
+            const blink = Math.sin(this.time * 5 + tower.id * 2) > 0;
             ctx.beginPath();
-            ctx.arc(px + ts * 0.5, py + ts * 0.1, 2, 0, Math.PI * 2);
-            ctx.fillStyle = blink ? '#ff3333' : '#660000';
+            ctx.arc(px + ts * 0.5, py + ts * 0.05, 2, 0, Math.PI * 2);
+            ctx.fillStyle = blink ? '#ff3333' : '#440000';
             ctx.fill();
+            // Свечение индикатора
+            if (blink) {
+                ctx.beginPath();
+                ctx.arc(px + ts * 0.5, py + ts * 0.05, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 50, 50, 0.15)';
+                ctx.fill();
+            }
         }
     },
 
@@ -563,19 +587,23 @@ const Renderer = {
     // ДЕНЬ/НОЧЬ
     // ==========================================
     renderDayNightOverlay(ctx, W, H) {
-        const hour = Game.time.hour;
+        const hour = Game.time.hour || 12;
         let alpha = 0;
 
-        if (hour >= 20 || hour < 6) {
-            alpha = 0.25; // ночь
+        if (hour >= 22 || hour < 5) {
+            alpha = 0.3; // глубокая ночь
+        } else if (hour >= 20) {
+            alpha = 0.15 * ((hour - 18) / 4); // поздний вечер
         } else if (hour >= 18) {
-            alpha = 0.15 * ((hour - 18) / 2); // вечер
-        } else if (hour < 8) {
-            alpha = 0.15 * ((8 - hour) / 2); // раннее утро
+            alpha = 0.05 + 0.1 * ((hour - 18) / 2); // вечер
+        } else if (hour < 7) {
+            alpha = 0.2 * ((7 - hour) / 2); // раннее утро
+        } else if (hour < 9) {
+            alpha = 0.03 * ((9 - hour) / 2); // утро рассеивается
         }
 
-        if (alpha > 0) {
-            ctx.fillStyle = `rgba(10, 15, 40, ${alpha})`;
+        if (alpha > 0.001) {
+            ctx.fillStyle = `rgba(10, 15, 40, ${Math.min(alpha, 0.4)})`;
             ctx.fillRect(0, 0, W, H);
         }
     },
@@ -588,16 +616,25 @@ const Renderer = {
         const hasStorm = Events.activeEvents.find(e => e.id === 'storm');
         if (!hasStorm) return;
 
-        ctx.strokeStyle = 'rgba(150, 180, 220, 0.2)';
+        ctx.save();
+        ctx.strokeStyle = 'rgba(150, 180, 220, 0.25)';
         ctx.lineWidth = 1;
-        for (let i = 0; i < 80; i++) {
-            const x = (Math.sin(i * 7.3 + this.time * 50) * 0.5 + 0.5) * W;
-            const y = ((this.time * 300 + i * 37) % H);
+        for (let i = 0; i < 120; i++) {
+            // Более реалистичное распределение капель
+            const seed = i * 7.3;
+            const x = ((seed * 137.5) % W);
+            const speed = 250 + (i % 5) * 60;
+            const y = ((this.time * speed + seed * 43) % (H + 20)) - 10;
+            const len = 10 + (i % 4) * 4;
+            const windOffset = Math.sin(this.time * 0.5) * 3;
+            ctx.globalAlpha = 0.15 + (i % 3) * 0.05;
             ctx.beginPath();
             ctx.moveTo(x, y);
-            ctx.lineTo(x - 1, y + 12);
+            ctx.lineTo(x + windOffset - 1, y + len);
             ctx.stroke();
         }
+        ctx.globalAlpha = 1;
+        ctx.restore();
     },
 
 
@@ -605,24 +642,30 @@ const Renderer = {
     // ЧАСТИЦЫ
     // ==========================================
     renderParticles(ctx) {
+        if (this.particles.length === 0) return;
+
+        ctx.save();
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
             p.x += p.vx;
             p.y += p.vy;
+            p.vy += 0.02; // лёгкая гравитация
             p.life -= p.decay;
+            p.size *= 0.99; // постепенно уменьшается
 
-            if (p.life <= 0) {
+            if (p.life <= 0 || p.size < 0.3) {
                 this.particles.splice(i, 1);
                 continue;
             }
 
-            ctx.globalAlpha = p.life;
+            ctx.globalAlpha = Math.max(0, p.life);
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fillStyle = p.color;
             ctx.fill();
-            ctx.globalAlpha = 1;
         }
+        ctx.globalAlpha = 1;
+        ctx.restore();
     },
 
     spawnParticles(x, y, color, count) {
