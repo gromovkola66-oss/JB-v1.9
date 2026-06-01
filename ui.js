@@ -157,7 +157,27 @@ const UI = {
             case 'tech': this.updateTech(); break;
             case 'finance': this.updateFinance(); break;
             case 'competitors': this.updateCompetitors(); break;
+            case 'achievements': this.updateAchievements(); break;
         }
+    },
+
+    updateAchievements() {
+        const container = document.getElementById('achievementsList');
+        const progressEl = document.getElementById('achProgress');
+        if (!container) return;
+
+        const data = Achievements.getProgress();
+        if (progressEl) progressEl.textContent = `${data.unlocked} / ${data.total}`;
+
+        container.innerHTML = data.list.map(a => `
+            <div class="ach-item ${a.unlocked ? 'unlocked' : 'locked'}">
+                <span class="ach-item-icon">${a.unlocked ? a.icon : '🔒'}</span>
+                <span class="ach-item-text">
+                    <span class="ach-item-name">${a.name}</span>
+                    <span class="ach-item-desc">${a.description}</span>
+                </span>
+            </div>
+        `).join('');
     },
 
 
@@ -176,13 +196,25 @@ const UI = {
         const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
 
         el('companyNameDisplay', s.companyName);
-        el('eraDisplay', `Эпоха: ${Game.getEraName(s.era)}`);
+        el('eraDisplay', `📶 ${Game.getEraName(s.era)}`);
         el('moneyDisplay', Game.formatMoney(s.money));
         el('clientsDisplay', s.totalClients);
         el('incomeDisplay', (s.totalIncome - s.totalExpense >= 0 ? '+' : '') + Game.formatMoney(s.totalIncome - s.totalExpense));
         el('uptimeDisplay', s.uptime + '%');
         el('reputationDisplay', s.reputation);
         el('dateDisplay', `${Game.getMonthName(t.month)} ${t.year}`);
+
+        // Цветовая индикация баланса
+        const moneyEl = document.getElementById('moneyDisplay');
+        if (moneyEl) {
+            moneyEl.style.color = s.money < 0 ? 'var(--danger)' : s.money < 5000 ? 'var(--warning)' : 'var(--text-bright)';
+        }
+        // Цветовая индикация прибыли
+        const incomeEl = document.getElementById('incomeDisplay');
+        if (incomeEl) {
+            const profit = s.totalIncome - s.totalExpense;
+            incomeEl.style.color = profit > 0 ? 'var(--income)' : profit < 0 ? 'var(--expense)' : 'var(--text-bright)';
+        }
     },
 
     updateTimeButtons() {

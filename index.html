@@ -10,15 +10,23 @@
     <!-- ГЛАВНОЕ МЕНЮ -->
     <div id="mainMenu" class="screen active">
         <div class="menu-bg"></div>
+        <div class="menu-grid"></div>
         <div class="menu-content">
+            <div class="title-badge">📡 Симулятор бизнеса</div>
             <h1 class="game-title">INTERNET<br><span>PROVIDER</span><br>TYCOON</h1>
-            <p class="subtitle">Построй свою телеком-империю</p>
-            <div class="menu-buttons">
-                <button class="btn btn-primary" onclick="UI.showNewGame()">Новая игра</button>
-                <button class="btn btn-secondary" onclick="UI.showLoadGame()">Загрузить</button>
-                <button class="btn btn-secondary" onclick="UI.showSettings()">Настройки</button>
+            <p class="subtitle">Построй свою телеком-империю с нуля</p>
+            <div class="feature-pills">
+                <span class="feature-pill">🌍 Расширяемый город</span>
+                <span class="feature-pill">📈 5 технологических эпох</span>
+                <span class="feature-pill">⚔️ Живые конкуренты</span>
+                <span class="feature-pill">🏆 25 достижений</span>
             </div>
-            <div class="version">v0.1.0 Alpha</div>
+            <div class="menu-buttons">
+                <button class="btn btn-primary" onclick="UI.showNewGame()">▶ Новая игра</button>
+                <button class="btn btn-secondary" onclick="UI.showLoadGame()">💾 Загрузить</button>
+                <button class="btn btn-secondary" onclick="UI.showSettings()">⚙️ Управление</button>
+            </div>
+            <div class="version">v0.2.0 Alpha</div>
         </div>
     </div>
 
@@ -86,43 +94,77 @@
         <div id="topBar">
             <div class="top-left">
                 <div class="company-info">
-                    <span id="companyNameDisplay" class="company-name">NetLink</span>
-                    <span id="eraDisplay" class="era-badge">Эпоха: Dial-up</span>
+                    <span class="company-logo">📡</span>
+                    <div class="company-text">
+                        <span id="companyNameDisplay" class="company-name">NetLink</span>
+                        <span id="eraDisplay" class="era-badge">Dial-up</span>
+                    </div>
                 </div>
             </div>
             <div class="top-center">
                 <div class="resource-bar">
-                    <div class="resource" title="Деньги">
+                    <div class="resource" title="Ваш баланс">
                         <span class="res-icon">💰</span>
-                        <span id="moneyDisplay">50,000 ₽</span>
+                        <div class="res-data">
+                            <span id="moneyDisplay" class="res-value">50,000 ₽</span>
+                            <span class="res-label">Баланс</span>
+                        </div>
                     </div>
-                    <div class="resource" title="Клиенты">
+                    <div class="res-divider"></div>
+                    <div class="resource" title="Всего активных клиентов">
                         <span class="res-icon">👥</span>
-                        <span id="clientsDisplay">0</span>
+                        <div class="res-data">
+                            <span id="clientsDisplay" class="res-value">0</span>
+                            <span class="res-label">Клиенты</span>
+                        </div>
                     </div>
-                    <div class="resource" title="Доход/мес">
+                    <div class="res-divider"></div>
+                    <div class="resource" title="Чистая прибыль в месяц">
                         <span class="res-icon">📈</span>
-                        <span id="incomeDisplay">+0 ₽</span>
+                        <div class="res-data">
+                            <span id="incomeDisplay" class="res-value">+0 ₽</span>
+                            <span class="res-label">Прибыль/мес</span>
+                        </div>
                     </div>
-                    <div class="resource" title="Uptime">
+                    <div class="res-divider"></div>
+                    <div class="resource" title="Стабильность сети">
                         <span class="res-icon">📶</span>
-                        <span id="uptimeDisplay">100%</span>
+                        <div class="res-data">
+                            <span id="uptimeDisplay" class="res-value">100%</span>
+                            <span class="res-label">Аптайм</span>
+                        </div>
                     </div>
-                    <div class="resource" title="Репутация">
+                    <div class="res-divider"></div>
+                    <div class="resource" title="Репутация компании">
                         <span class="res-icon">⭐</span>
-                        <span id="reputationDisplay">50</span>
+                        <div class="res-data">
+                            <span id="reputationDisplay" class="res-value">50</span>
+                            <span class="res-label">Репутация</span>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="top-right">
                 <div class="time-controls">
-                    <span id="dateDisplay" class="game-date">Янв 2005</span>
-                    <button class="time-btn" id="pauseBtn" onclick="Game.togglePause()" title="Пауза">⏸</button>
-                    <button class="time-btn active" id="speed1Btn" onclick="Game.setSpeed(1)" title="x1">▶</button>
-                    <button class="time-btn" id="speed2Btn" onclick="Game.setSpeed(2)" title="x2">▶▶</button>
-                    <button class="time-btn" id="speed5Btn" onclick="Game.setSpeed(5)" title="x5">▶▶▶</button>
+                    <div class="date-box">
+                        <span class="date-icon">📅</span>
+                        <span id="dateDisplay" class="game-date">Янв 2005</span>
+                    </div>
+                    <button class="time-btn" id="pauseBtn" onclick="Game.togglePause()" title="Пауза (Пробел)">
+                        <span class="time-icon">⏸</span>
+                        <span class="time-text">Пауза</span>
+                    </button>
+                    <button class="time-btn active" id="speed1Btn" onclick="Game.setSpeed(1)" title="Обычная скорость (1)">
+                        <span class="time-text">1x</span>
+                    </button>
+                    <button class="time-btn" id="speed2Btn" onclick="Game.setSpeed(2)" title="Двойная скорость (2)">
+                        <span class="time-text">2x</span>
+                    </button>
+                    <button class="time-btn" id="speed5Btn" onclick="Game.setSpeed(5)" title="Максимальная скорость (3)">
+                        <span class="time-text">5x</span>
+                    </button>
                 </div>
-                <button class="btn-icon" onclick="UI.showGameMenu()" title="Меню">☰</button>
+                <button class="btn-icon" onclick="UI.showGameMenu()" title="Меню игры">☰</button>
             </div>
         </div>
 
@@ -132,39 +174,48 @@
         <!-- Левая панель инструментов -->
         <div id="toolPanel">
             <div class="tool-group">
-                <span class="tool-label">Строительство</span>
-                <button class="tool-btn" data-tool="cable" onclick="UI.selectTool('cable')" title="Проложить кабель">
+                <span class="tool-label">🏗️ Строительство</span>
+                <button class="tool-btn" data-tool="cable" onclick="UI.selectTool('cable')" title="Проложить кабель между зданиями">
                     <span class="tool-icon">🔌</span>
+                    <span class="tool-text">Кабель</span>
                 </button>
-                <button class="tool-btn" data-tool="tower" onclick="UI.selectTool('tower')" title="Установить вышку">
+                <button class="tool-btn" data-tool="tower" onclick="UI.selectTool('tower')" title="Установить беспроводную вышку">
                     <span class="tool-icon">📡</span>
+                    <span class="tool-text">Вышка</span>
                 </button>
-                <button class="tool-btn" data-tool="node" onclick="UI.selectTool('node')" title="Узел связи">
+                <button class="tool-btn" data-tool="node" onclick="UI.selectTool('node')" title="Узел связи — увеличивает ёмкость сети">
                     <span class="tool-icon">🖥️</span>
+                    <span class="tool-text">Узел</span>
                 </button>
-                <button class="tool-btn" data-tool="datacenter" onclick="UI.selectTool('datacenter')" title="Дата-центр">
+                <button class="tool-btn" data-tool="datacenter" onclick="UI.selectTool('datacenter')" title="Дата-центр для хостинга">
                     <span class="tool-icon">🏢</span>
+                    <span class="tool-text">ЦОД</span>
                 </button>
             </div>
             <div class="tool-group">
-                <span class="tool-label">Управление</span>
-                <button class="tool-btn" data-tool="select" onclick="UI.selectTool('select')" title="Выбрать">
+                <span class="tool-label">🛠️ Управление</span>
+                <button class="tool-btn" data-tool="select" onclick="UI.selectTool('select')" title="Выбрать объект и узнать информацию">
                     <span class="tool-icon">🖱️</span>
+                    <span class="tool-text">Выбор</span>
                 </button>
-                <button class="tool-btn" data-tool="demolish" onclick="UI.selectTool('demolish')" title="Снести">
+                <button class="tool-btn" data-tool="demolish" onclick="UI.selectTool('demolish')" title="Снести объект">
                     <span class="tool-icon">🗑️</span>
+                    <span class="tool-text">Снос</span>
                 </button>
-                <button class="tool-btn" data-tool="upgrade" onclick="UI.selectTool('upgrade')" title="Улучшить">
+                <button class="tool-btn" data-tool="upgrade" onclick="UI.selectTool('upgrade')" title="Улучшить объект">
                     <span class="tool-icon">⬆️</span>
+                    <span class="tool-text">Апгрейд</span>
                 </button>
             </div>
             <div class="tool-group">
-                <span class="tool-label">Зум</span>
-                <button class="tool-btn" onclick="MapSystem.zoomIn()" title="Приблизить">
-                    <span class="tool-icon">🔍+</span>
+                <span class="tool-label">🔍 Карта</span>
+                <button class="tool-btn tool-btn-half" onclick="MapSystem.zoomIn()" title="Приблизить">
+                    <span class="tool-icon">➕</span>
+                    <span class="tool-text">Ближе</span>
                 </button>
-                <button class="tool-btn" onclick="MapSystem.zoomOut()" title="Отдалить">
-                    <span class="tool-icon">🔍-</span>
+                <button class="tool-btn tool-btn-half" onclick="MapSystem.zoomOut()" title="Отдалить">
+                    <span class="tool-icon">➖</span>
+                    <span class="tool-text">Дальше</span>
                 </button>
             </div>
         </div>
@@ -172,12 +223,13 @@
         <!-- Нижняя панель вкладок -->
         <div id="bottomPanel">
             <div class="tab-bar">
-                <button class="tab-btn active" data-tab="overview" onclick="UI.switchTab('overview')">Обзор</button>
-                <button class="tab-btn" data-tab="tariffs" onclick="UI.switchTab('tariffs')">Тарифы</button>
-                <button class="tab-btn" data-tab="staff" onclick="UI.switchTab('staff')">Персонал</button>
-                <button class="tab-btn" data-tab="tech" onclick="UI.switchTab('tech')">Технологии</button>
-                <button class="tab-btn" data-tab="finance" onclick="UI.switchTab('finance')">Финансы</button>
-                <button class="tab-btn" data-tab="competitors" onclick="UI.switchTab('competitors')">Конкуренты</button>
+                <button class="tab-btn active" data-tab="overview" onclick="UI.switchTab('overview')">📊 Обзор</button>
+                <button class="tab-btn" data-tab="tariffs" onclick="UI.switchTab('tariffs')">💳 Тарифы</button>
+                <button class="tab-btn" data-tab="staff" onclick="UI.switchTab('staff')">👷 Персонал</button>
+                <button class="tab-btn" data-tab="tech" onclick="UI.switchTab('tech')">🔬 Технологии</button>
+                <button class="tab-btn" data-tab="finance" onclick="UI.switchTab('finance')">💰 Финансы</button>
+                <button class="tab-btn" data-tab="competitors" onclick="UI.switchTab('competitors')">⚔️ Конкуренты</button>
+                <button class="tab-btn" data-tab="achievements" onclick="UI.switchTab('achievements')">🏆 Награды</button>
             </div>
             <div class="tab-content">
                 <!-- Обзор -->
@@ -246,6 +298,14 @@
                 <!-- Конкуренты -->
                 <div id="tab-competitors" class="tab-pane">
                     <div id="competitorsList" class="competitors-list"></div>
+                </div>
+                <!-- Достижения -->
+                <div id="tab-achievements" class="tab-pane">
+                    <div class="ach-header">
+                        <h4>Достижения</h4>
+                        <span id="achProgress" class="ach-progress-text">0 / 25</span>
+                    </div>
+                    <div id="achievementsList" class="achievements-list"></div>
                 </div>
             </div>
         </div>
