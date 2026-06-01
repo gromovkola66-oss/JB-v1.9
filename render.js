@@ -87,9 +87,26 @@ const Renderer = {
         this.renderSeasonOverlay(ctx, W, H);
         this.renderDayNightOverlay(ctx, W, H);
         this.renderWeather(ctx, W, H);
+        this.renderVignette(ctx, W, H);
 
         // Миникарта
         this.renderMinimap();
+    },
+
+    // Атмосферная виньетка по краям
+    renderVignette(ctx, W, H) {
+        if (this._vignette && this._vigW === W && this._vigH === H) {
+            ctx.fillStyle = this._vignette;
+            ctx.fillRect(0, 0, W, H);
+            return;
+        }
+        const grad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.35)');
+        this._vignette = grad;
+        this._vigW = W; this._vigH = H;
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
     },
 
 
@@ -100,123 +117,183 @@ const Renderer = {
         const cam = MapSystem.camera;
         const ts = MapSystem.tileSize;
 
-        // Вычисляем видимую область
         const startX = Math.max(0, Math.floor(cam.x / ts) - 1);
         const startY = Math.max(0, Math.floor(cam.y / ts) - 1);
         const endX = Math.min(MapSystem.gridWidth, Math.ceil((cam.x + this.canvas.width / cam.zoom) / ts) + 1);
         const endY = Math.min(MapSystem.gridHeight, Math.ceil((cam.y + this.canvas.height / cam.zoom) / ts) + 1);
 
+        const T = MapSystem.TILE_TYPES;
+
+        // ПРОХОД 1: земля-основа (трава) под всем
         for (let y = startY; y < endY; y++) {
             for (let x = startX; x < endX; x++) {
                 const tile = MapSystem.tiles[y]?.[x];
                 if (!tile) continue;
-
-                const px = x * ts;
-                const py = y * ts;
-
-                // Основной цвет
-                ctx.fillStyle = this.TILE_COLORS[tile.type] || '#1a1a2e';
-                ctx.fillRect(px, py, ts, ts);
-
-                // Детали по типу
-                this.renderTileDetail(ctx, tile, px, py, ts, x, y);
+                const px = x * ts, py = y * ts;
+                if (tile.type === T.LOCKED) {
+                    this.drawLockedTile(ctx, px, py, ts, x, y);
+                } else if (tile.type === T.WATER) {
+                    this.drawWaterTile(ctx, px, py, ts, x, y);
+                } else {
+                    this.drawGroundTile(ctx, px, py, ts, x, y);
+                }
             }
         }
 
-        // Сетка (только при зуме > 1)
-        if (cam.zoom > 1.2) {
-            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-            ctx.lineWidth = 0.5;
-            for (let y = startY; y <= endY; y++) {
-                ctx.beginPath();
-                ctx.moveTo(startX * ts, y * ts);
-                ctx.lineTo(endX * ts, y * ts);
-                ctx.stroke();
+        // ПРОХОД 2: дороги (поверх земли, со связностью)
+        for (let y = startY; y < endY; y++) {
+            for (let x = startX; x < endX; x++) {
+                const tile = MapSystem.tiles[y]?.[x];
+                if (tile && tile.road) this.drawRoadTile(ctx, x, y, ts);
             }
-            for (let x = startX; x <= endX; x++) {
-                ctx.beginPath();
-                ctx.moveTo(x * ts, startY * ts);
-                ctx.lineTo(x * ts, endY * ts);
-                ctx.stroke();
+        }
+
+        // ПРОХОД 3: декор (деревья, парки)
+        for (let y = startY; y < endY; y++) {
+            for (let x = startX; x < endX; x++) {
+                const tile = MapSystem.tiles[y]?.[x];
+                if (!tile) continue;
+                const px = x * ts, py = y * ts;
+                if (tile.type === T.TREE) this.drawTreeTile(ctx, px, py, ts, x, y);
+                else if (tile.type === T.PARK) this.drawParkTile(ctx, px, py, ts, x, y);
             }
         }
     },
 
-    renderTileDetail(ctx, tile, px, py, ts, tx, ty) {
-        const T = MapSystem.TILE_TYPES;
+    drawGroundTile(ctx, px, py, ts, tx, ty) {
+        // Трава с лёгкой вариацией оттенка
+        const v = ((tx * 7 + ty * 13) % 5);
+        const base = ['#243a24', '#26402a', '#223822', '#284428', '#213620'][v];
+        ctx.fillStyle = base;
+        ctx.fillRect(px, py, ts, ts);
+        // Текстурные точки травы
+        if ((tx + ty) % 2 === 0) {
+            ctx.fillStyle = 'rgba(80, 140, 80, 0.12)';
+            for (let i = 0; i < 3; i++) {
+                const gx = px + ((tx * 17 + i * 11) % ts);
+                const gy = py + ((ty * 19 + i * 7) % ts);
+                ctx.fillRect(gx, gy, 2, 2);
+            }
+        }
+    },
 
-        switch (tile.type) {
-            case T.GRASS:
-                // Травинки
-                if ((tx + ty) % 3 === 0) {
-                    ctx.fillStyle = 'rgba(50, 100, 50, 0.4)';
-                    ctx.fillRect(px + ts * 0.3, py + ts * 0.6, 1, 4);
-                    ctx.fillRect(px + ts * 0.7, py + ts * 0.4, 1, 3);
-                }
-                break;
+    drawLockedTile(ctx, px, py, ts, tx, ty) {
+        ctx.fillStyle = '#070a10';
+        ctx.fillRect(px, py, ts, ts);
+        ctx.fillStyle = 'rgba(40, 50, 70, 0.25)';
+        if ((tx + ty) % 3 === 0) ctx.fillRect(px + ts * 0.3, py + ts * 0.3, 3, 3);
+    },
 
-            case T.ROAD:
-                // Дорожная разметка
-                ctx.fillStyle = '#4a4a5a';
-                ctx.fillRect(px + 1, py + 1, ts - 2, ts - 2);
-                // Линия по центру
-                if (ty % 2 === 0) {
-                    ctx.fillStyle = 'rgba(200, 200, 100, 0.3)';
-                    ctx.fillRect(px + ts / 2 - 0.5, py + 2, 1, ts - 4);
-                }
-                break;
+    // Детальная дорога со связностью и тротуарами
+    drawRoadTile(ctx, tx, ty, ts) {
+        const px = tx * ts, py = ty * ts;
+        const up = MapSystem.getTile(tx, ty - 1)?.road;
+        const down = MapSystem.getTile(tx, ty + 1)?.road;
+        const left = MapSystem.getTile(tx - 1, ty)?.road;
+        const right = MapSystem.getTile(tx + 1, ty)?.road;
 
-            case T.TREE:
-                // Ствол
-                ctx.fillStyle = '#5a3a1a';
-                ctx.fillRect(px + ts * 0.4, py + ts * 0.5, ts * 0.2, ts * 0.4);
-                // Крона
-                ctx.beginPath();
-                ctx.arc(px + ts * 0.5, py + ts * 0.35, ts * 0.3, 0, Math.PI * 2);
-                ctx.fillStyle = '#2a6a2a';
-                ctx.fill();
-                // Блики
-                ctx.beginPath();
-                ctx.arc(px + ts * 0.4, py + ts * 0.3, ts * 0.12, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(60, 140, 60, 0.5)';
-                ctx.fill();
-                break;
+        // Тротуар (вся клетка)
+        ctx.fillStyle = '#3c4250';
+        ctx.fillRect(px, py, ts, ts);
 
-            case T.PARK:
-                ctx.fillStyle = '#2a5a2a';
-                ctx.fillRect(px, py, ts, ts);
-                // Цветы
-                const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff'];
-                for (let i = 0; i < 3; i++) {
-                    ctx.beginPath();
-                    ctx.arc(px + 8 + i * 9, py + 12 + (i % 2) * 8, 2, 0, Math.PI * 2);
-                    ctx.fillStyle = colors[(tx + ty + i) % colors.length];
-                    ctx.fill();
-                }
-                break;
+        // Асфальт (центральная полоса, шире если есть соседи)
+        const m = ts * 0.16; // отступ тротуара
+        ctx.fillStyle = '#23262e';
+        ctx.fillRect(px + m, py + m, ts - 2 * m, ts - 2 * m);
+        // Продления к соседям, чтобы асфальт соединялся
+        if (up) ctx.fillRect(px + m, py, ts - 2 * m, m + 1);
+        if (down) ctx.fillRect(px + m, py + ts - m - 1, ts - 2 * m, m + 1);
+        if (left) ctx.fillRect(px, py + m, m + 1, ts - 2 * m);
+        if (right) ctx.fillRect(px + ts - m - 1, py + m, m + 1, ts - 2 * m);
 
-            case T.WATER:
-                // Волны
-                const wave = Math.sin(this.time * 2 + tx * 0.5) * 2;
-                ctx.fillStyle = '#1a3a5a';
-                ctx.fillRect(px, py, ts, ts);
-                ctx.strokeStyle = 'rgba(100, 180, 220, 0.2)';
-                ctx.lineWidth = 0.5;
-                ctx.beginPath();
-                ctx.moveTo(px, py + ts * 0.5 + wave);
-                ctx.lineTo(px + ts, py + ts * 0.5 - wave);
-                ctx.stroke();
-                break;
+        // Разметка — жёлтые пунктиры по направлениям
+        ctx.fillStyle = 'rgba(220, 200, 90, 0.55)';
+        const dash = ts * 0.18;
+        const cx = px + ts / 2, cy = py + ts / 2;
+        if ((up || down) && !(left && right)) {
+            // вертикальная разметка
+            ctx.fillRect(cx - 1, py + ts * 0.15, 2, dash);
+            ctx.fillRect(cx - 1, py + ts * 0.6, 2, dash);
+        }
+        if ((left || right) && !(up && down)) {
+            ctx.fillRect(px + ts * 0.15, cy - 1, dash, 2);
+            ctx.fillRect(px + ts * 0.6, cy - 1, dash, 2);
+        }
+        // Перекрёсток — центральный квадрат светлее
+        const roadCount = (up ? 1 : 0) + (down ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0);
+        if (roadCount >= 3) {
+            ctx.fillStyle = 'rgba(255,255,255,0.04)';
+            ctx.fillRect(px + m, py + m, ts - 2 * m, ts - 2 * m);
+        }
+    },
 
-            case T.LOCKED:
-                // Затенённая зона
-                ctx.fillStyle = '#08080f';
-                ctx.fillRect(px, py, ts, ts);
-                if ((tx + ty) % 4 === 0) {
-                    ctx.fillStyle = 'rgba(30, 30, 50, 0.5)';
-                    ctx.fillRect(px + 4, py + 4, 2, 2);
-                }
-                break;
+    drawWaterTile(ctx, px, py, ts, tx, ty) {
+        const grad = ctx.createLinearGradient(px, py, px, py + ts);
+        grad.addColorStop(0, '#15324f');
+        grad.addColorStop(1, '#0d2238');
+        ctx.fillStyle = grad;
+        ctx.fillRect(px, py, ts, ts);
+        // Анимированные блики волн
+        ctx.strokeStyle = 'rgba(120, 190, 230, 0.18)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 2; i++) {
+            const wy = py + ts * (0.3 + i * 0.4) + Math.sin(this.time * 2 + tx * 0.6 + i) * 3;
+            ctx.beginPath();
+            ctx.moveTo(px + 2, wy);
+            ctx.quadraticCurveTo(px + ts / 2, wy - 3, px + ts - 2, wy);
+            ctx.stroke();
+        }
+    },
+
+    drawTreeTile(ctx, px, py, ts, tx, ty) {
+        const cx = px + ts / 2;
+        const sway = Math.sin(this.time * 1.5 + tx + ty) * 1.5;
+        // Тень кроны
+        ctx.beginPath();
+        ctx.ellipse(cx, py + ts * 0.82, ts * 0.28, ts * 0.1, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fill();
+        // Ствол
+        ctx.fillStyle = '#4a3320';
+        ctx.fillRect(cx - ts * 0.05, py + ts * 0.5, ts * 0.1, ts * 0.35);
+        // Крона — три слоя для объёма
+        const layers = [
+            { r: 0.32, c: '#1f5a26', oy: 0.42 },
+            { r: 0.26, c: '#2a6e30', oy: 0.34 },
+            { r: 0.16, c: '#3a8a3e', oy: 0.27 },
+        ];
+        for (const l of layers) {
+            ctx.beginPath();
+            ctx.arc(cx + sway, py + ts * l.oy, ts * l.r, 0, Math.PI * 2);
+            ctx.fillStyle = l.c;
+            ctx.fill();
+        }
+        // Блик
+        ctx.beginPath();
+        ctx.arc(cx + sway - ts * 0.08, py + ts * 0.24, ts * 0.07, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(140, 210, 130, 0.5)';
+        ctx.fill();
+    },
+
+    drawParkTile(ctx, px, py, ts, tx, ty) {
+        // Зелёная лужайка
+        const grad = ctx.createLinearGradient(px, py, px, py + ts);
+        grad.addColorStop(0, '#2f6a32');
+        grad.addColorStop(1, '#27582a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(px, py, ts, ts);
+        // Дорожка
+        ctx.fillStyle = 'rgba(180, 160, 120, 0.3)';
+        ctx.fillRect(px + ts * 0.45, py, ts * 0.1, ts);
+        // Цветы
+        const colors = ['#ff6b6b', '#ffd93d', '#ff8fd0', '#7fd0ff'];
+        for (let i = 0; i < 4; i++) {
+            const fx = px + ((tx * 13 + i * 17) % (ts - 8)) + 4;
+            const fy = py + ((ty * 11 + i * 23) % (ts - 8)) + 4;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 2.2, 0, Math.PI * 2);
+            ctx.fillStyle = colors[(tx + ty + i) % colors.length];
+            ctx.fill();
         }
     },
 
@@ -245,9 +322,11 @@ const Renderer = {
         const zoom = cam.zoom;
         const lit = building.connected && building.connectedClients > 0;
 
-        // Тень
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.fillRect(px + 3, py + 3, ts - 2, ts - 2);
+        // Мягкая тень у основания здания
+        ctx.beginPath();
+        ctx.ellipse(px + ts / 2 + 3, py + ts - 4, ts * 0.42, ts * 0.12, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fill();
 
         // Вызываем специализированную отрисовку по варианту
         switch (building.variant) {
@@ -1135,25 +1214,26 @@ const Renderer = {
 
             const px = car.x * ts;
             const py = car.y * ts;
+            const cl = ts * 0.32; // длина машины
+            const cw = ts * 0.16; // ширина
 
-            // Корпус
             ctx.fillStyle = car.color;
             if (car.vx !== 0) {
                 // Горизонтальная
-                ctx.fillRect(px - 5, py + ts * 0.35, 10, 5);
-                // Окна
+                ctx.fillRect(px - cl / 2, py + ts * 0.42, cl, cw);
+                // Кабина
                 ctx.fillStyle = 'rgba(150, 200, 255, 0.5)';
-                ctx.fillRect(px - 2, py + ts * 0.35, 3, 4);
+                ctx.fillRect(px - cl * 0.15, py + ts * 0.43, cl * 0.35, cw * 0.7);
                 // Фары
-                ctx.fillStyle = car.vx > 0 ? 'rgba(255,255,200,0.8)' : 'rgba(255,50,50,0.6)';
-                ctx.fillRect(car.vx > 0 ? px + 4 : px - 5, py + ts * 0.37, 2, 2);
+                ctx.fillStyle = car.vx > 0 ? 'rgba(255,255,200,0.9)' : 'rgba(255,50,50,0.7)';
+                ctx.fillRect(car.vx > 0 ? px + cl / 2 - 2 : px - cl / 2, py + ts * 0.44, 2, cw * 0.6);
             } else {
                 // Вертикальная
-                ctx.fillRect(px + ts * 0.35, py - 5, 5, 10);
+                ctx.fillRect(px + ts * 0.42, py - cl / 2, cw, cl);
                 ctx.fillStyle = 'rgba(150, 200, 255, 0.5)';
-                ctx.fillRect(px + ts * 0.36, py - 2, 4, 3);
-                ctx.fillStyle = car.vy > 0 ? 'rgba(255,255,200,0.8)' : 'rgba(255,50,50,0.6)';
-                ctx.fillRect(px + ts * 0.37, car.vy > 0 ? py + 4 : py - 5, 2, 2);
+                ctx.fillRect(px + ts * 0.43, py - cl * 0.15, cw * 0.7, cl * 0.35);
+                ctx.fillStyle = car.vy > 0 ? 'rgba(255,255,200,0.9)' : 'rgba(255,50,50,0.7)';
+                ctx.fillRect(px + ts * 0.44, car.vy > 0 ? py + cl / 2 - 2 : py - cl / 2, cw * 0.6, 2);
             }
         }
     },

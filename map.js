@@ -5,7 +5,7 @@
 
 const MapSystem = {
     // Настройки
-    tileSize: 32, // пикселей на тайл
+    tileSize: 42, // пикселей на тайл
     gridWidth: 60, // тайлов (начальный район)
     gridHeight: 60,
     maxWidth: 200, // максимальный размер мира
