@@ -289,7 +289,8 @@ const MapSystem = {
         for (const [dx, dy] of dirs) {
             const nx = x + dx, ny = y + dy;
             if (nx >= 0 && nx < this.gridWidth && ny >= 0 && ny < this.gridHeight) {
-                if (this.tiles[ny][nx].road) return true;
+                const tile = this.tiles[ny]?.[nx];
+                if (tile && tile.road) return true;
             }
         }
         return false;
@@ -297,7 +298,8 @@ const MapSystem = {
 
     getTile(x, y) {
         if (x < 0 || x >= this.gridWidth || y < 0 || y >= this.gridHeight) return null;
-        return this.tiles[y][x];
+        if (!this.tiles[y]) return null;
+        return this.tiles[y][x] || null;
     },
 
     getBuildingAt(x, y) {

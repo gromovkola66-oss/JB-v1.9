@@ -202,8 +202,8 @@ const Economy = {
 
     // Средняя цена тарифов
     getAveragePrice() {
-        const active = this.tariffs.filter(t => t.active);
-        if (active.length === 0) return 0;
+        const active = this.tariffs.filter(t => t.active !== false);
+        if (active.length === 0) return 400; // дефолтная цена рынка если нет тарифов
         return active.reduce((sum, t) => sum + t.price, 0) / active.length;
     },
 

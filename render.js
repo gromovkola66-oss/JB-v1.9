@@ -1110,8 +1110,9 @@ const Renderer = {
     // МАШИНКИ НА ДОРОГАХ
     // ==========================================
     renderCars(ctx) {
+        if (!this.cars) this.cars = [];
         const ts = MapSystem.tileSize;
-        this.carSpawnTimer += 0.016;
+        this.carSpawnTimer = (this.carSpawnTimer || 0) + 0.016;
 
         // Спавним новые машинки
         if (this.carSpawnTimer > 2 && this.cars.length < 15) {

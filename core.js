@@ -199,11 +199,15 @@ const Game = {
 
     // Игровой тик — основные обновления
     gameTick() {
-        Infrastructure.update();
-        Clients.update();
-        Economy.update();
-        AI.update();
-        Events.update();
+        try {
+            Infrastructure.update();
+            Clients.update();
+            Economy.update();
+            AI.update();
+            Events.update();
+        } catch (e) {
+            console.error('Game tick error:', e);
+        }
     },
 
     // Новый день

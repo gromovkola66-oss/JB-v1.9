@@ -190,6 +190,13 @@ const Infrastructure = {
             return;
         }
 
+        // Проверяем разблокирован ли тип кабеля
+        if (!Tech.isCableUnlocked(this.cableType)) {
+            UI.notify(`Нужно исследовать технологию для ${type.name}!`, 'warning');
+            this.cancelCable();
+            return;
+        }
+
         // Строим полный путь между точками (по прямым линиям)
         const fullPath = this.buildCablePath(this.cablePath);
         const totalCost = fullPath.length * type.costPerTile;
@@ -302,6 +309,12 @@ const Infrastructure = {
         towerType = towerType || 'wifi';
         const type = this.TOWER_TYPES[towerType];
         if (!type) return false;
+
+        // Проверяем разблокирована ли технология
+        if (!Tech.isTowerUnlocked(towerType)) {
+            UI.notify(`Нужно сначала исследовать технологию для ${type.name}!`, 'warning');
+            return false;
+        }
 
         const tile = MapSystem.getTile(x, y);
         if (!tile || tile.type === MapSystem.TILE_TYPES.LOCKED ||
