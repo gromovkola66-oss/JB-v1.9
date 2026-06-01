@@ -315,7 +315,10 @@ const AI = {
             if (comp.alive) totalClients += comp.clients;
         }
 
-        if (totalClients === 0) return;
+        if (totalClients === 0) {
+            Game.state.marketShare = 0;
+            return;
+        }
 
         Game.state.marketShare = Math.round((Game.state.totalClients / totalClients) * 100);
 

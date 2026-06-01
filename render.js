@@ -1159,6 +1159,7 @@ const Renderer = {
     },
 
     spawnCar() {
+        if (!MapSystem.zones || !MapSystem.tiles) return;
         const roadTiles = [];
         const zones = MapSystem.zones.filter(z => z.unlocked);
         for (const zone of zones) {

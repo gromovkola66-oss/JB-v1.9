@@ -292,11 +292,14 @@ const Clients = {
     // ПОДКЛЮЧЕНИЕ КЛИЕНТА
     // ==========================================
     connectClient(building, segment, tariff) {
+        const tariffIndex = Economy.tariffs.indexOf(tariff);
+        if (tariffIndex < 0) return; // тариф удалён
+
         const client = {
             id: this.clients.length,
             buildingId: building.id,
             segment,
-            tariffIndex: Economy.tariffs.indexOf(tariff),
+            tariffIndex: tariffIndex,
             satisfaction: 70 + Math.random() * 20, // 70-90 начальная
             connectedDate: { ...Game.time },
             monthsActive: 0,
@@ -328,6 +331,7 @@ const Clients = {
 
         for (const client of this.clients) {
             const segData = this.SEGMENTS[client.segment];
+            if (!segData) continue;
             const tariff = Economy.tariffs[client.tariffIndex];
             if (!tariff) continue;
 
@@ -388,6 +392,7 @@ const Clients = {
         for (let i = this.clients.length - 1; i >= 0; i--) {
             const client = this.clients[i];
             const segData = this.SEGMENTS[client.segment];
+            if (!segData) continue;
 
             // Базовый шанс оттока зависит от удовлетворённости
             let churnChance = 0;

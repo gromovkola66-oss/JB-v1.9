@@ -540,6 +540,7 @@ const Tech = {
     // Проверяем разблокирован ли тип кабеля
     isCableUnlocked(cableType) {
         if (cableType === 'copper') return true; // всегда доступен
+        if (cableType === 'coaxial') return true; // доступен с начала (эпоха 1)
         const tech = this.TECHNOLOGIES.find(t =>
             t.effect?.type === 'unlock_cable' && t.effect?.value === cableType
         );
@@ -548,6 +549,10 @@ const Tech = {
 
     // Проверяем разблокирован ли тип вышки
     isTowerUnlocked(towerType) {
+        if (towerType === 'wifi') {
+            const tech = this.TECHNOLOGIES.find(t => t.id === 'wifi_hotspots');
+            return tech ? this.researchedTechs.includes(tech.id) : false;
+        }
         const tech = this.TECHNOLOGIES.find(t =>
             t.effect?.type === 'unlock_tower' && t.effect?.value === towerType
         );
