@@ -97,6 +97,7 @@ const Tutorial = {
         // Проверяем не проходил ли уже
         if (localStorage.getItem('ipt_tutorial_done')) {
             this.completed = true;
+            this.active = false;
             return;
         }
         this.active = true;
@@ -162,11 +163,12 @@ const Tutorial = {
 
     // Вызывается из других систем когда событие произошло
     trigger(eventId) {
-        if (!this.active) return;
+        if (!this.active || this.completed) return;
         const step = this.STEPS[this.step];
         if (!step) return;
 
         if (step.waitFor === eventId) {
+            this.clearHighlight();
             setTimeout(() => this.nextStep(), 500);
         }
     },

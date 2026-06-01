@@ -35,6 +35,8 @@ const Renderer = {
         this.minimapCanvas = document.getElementById('minimapCanvas');
         this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
         this.particles = [];
+        this.cars = [];
+        this.carSpawnTimer = 0;
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
     },
@@ -1107,9 +1109,6 @@ const Renderer = {
     // ==========================================
     // МАШИНКИ НА ДОРОГАХ
     // ==========================================
-    cars: [],
-    carSpawnTimer: 0,
-
     renderCars(ctx) {
         const ts = MapSystem.tileSize;
         this.carSpawnTimer += 0.016;
