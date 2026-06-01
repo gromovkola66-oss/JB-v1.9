@@ -238,13 +238,24 @@ const UI = {
     updateTariffs() {
         const container = document.getElementById('tariffsList');
         if (!container) return;
+        container.className = 'content-list';
+        if (Economy.tariffs.length === 0) {
+            container.innerHTML = '<div class="empty-hint">Нет тарифов. Создайте первый тариф!</div>';
+            return;
+        }
         container.innerHTML = Economy.tariffs.map((t, i) => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg-dark);border-radius:4px;margin-bottom:6px">
-                <div>
-                    <strong>${t.name}</strong>
-                    <small style="color:var(--text-dim)"> | ${t.speed} Мбит | ${t.dataLimit ? t.dataLimit + 'ГБ' : '∞'} | ${t.subscribers || 0} абон.</small>
+            <div class="card">
+                <div class="card-row">
+                    <div>
+                        <div class="card-title">${t.name}</div>
+                        <div class="card-sub">⚡ ${t.speed} Мбит · ${t.dataLimit ? t.dataLimit + ' ГБ' : '∞ безлимит'}</div>
+                    </div>
+                    <div class="card-price">${t.price} ₽</div>
                 </div>
-                <div><strong style="color:var(--accent)">${t.price} ₽/мес</strong></div>
+                <div class="card-row" style="margin-top:8px">
+                    <span class="card-badge">👥 ${t.subscribers || 0} абон.</span>
+                    <button class="card-action danger" style="width:auto;margin:0;padding:4px 10px" onclick="Economy.deleteTariff(${i}); UI.updateTariffs();">Удалить</button>
+                </div>
             </div>
         `).join('');
     },
@@ -252,19 +263,29 @@ const UI = {
     updateStaff() {
         const container = document.getElementById('staffList');
         if (!container) return;
+        container.className = 'content-list';
         if (Economy.staff.length === 0) {
-            container.innerHTML = '<p style="color:var(--text-dim)">Нет сотрудников. Наймите персонал!</p>';
+            container.innerHTML = '<div class="empty-hint">Нет сотрудников. Наймите персонал для роста компании!</div>';
             return;
         }
-        container.innerHTML = Economy.staff.map((s, i) => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px;background:var(--bg-dark);border-radius:4px;margin-bottom:4px">
-                <div>
-                    <strong>${s.name}</strong>
-                    <small style="color:var(--text-dim)"> | ${Economy.STAFF_TYPES[s.type]?.name || s.type} | Мораль: ${s.morale}%</small>
+        const icons = { technician: '🔧', engineer: '🛠️', support: '🎧', sales: '💼', marketer: '📣', accountant: '🧮', lawyer: '⚖️', researcher: '🔬' };
+        container.innerHTML = Economy.staff.map((s, i) => {
+            const moraleClass = s.morale > 66 ? 'green' : s.morale > 33 ? 'orange' : 'red';
+            const typeName = Economy.STAFF_TYPES[s.type]?.name || s.type;
+            return `
+            <div class="card">
+                <div class="card-row">
+                    <div>
+                        <div class="card-title">${icons[s.type] || '👤'} ${s.name}</div>
+                        <div class="card-sub">${typeName} · опыт ${s.experience} мес</div>
+                    </div>
+                    <div class="card-price" style="font-size:0.85em">${Game.formatMoney(s.salary)}</div>
                 </div>
-                <div><small>${Game.formatMoney(s.salary)}/мес</small></div>
-            </div>
-        `).join('');
+                <div class="card-sub" style="margin-top:8px">Мораль: ${Math.round(s.morale)}%</div>
+                <div class="bar-track"><div class="bar-fill ${moraleClass}" style="width:${s.morale}%"></div></div>
+                <button class="card-action danger" onclick="Economy.fireStaff(${i}); UI.updateStaff();">Уволить</button>
+            </div>`;
+        }).join('');
     },
 
     updateTech() {
@@ -276,24 +297,34 @@ const UI = {
 
         let html = '';
         if (progress) {
-            html += `<div style="margin-bottom:12px;padding:10px;background:rgba(0,188,212,0.1);border:1px solid var(--accent);border-radius:6px">
-                <strong>Исследуется: ${progress.tech.name}</strong>
-                <div style="background:var(--bg-dark);height:8px;border-radius:4px;margin-top:6px;overflow:hidden">
-                    <div style="background:var(--accent);height:100%;width:${progress.progress}%;transition:width 0.3s"></div>
+            html += `<div class="research-banner">
+                <div class="card-row">
+                    <div class="card-title">🔬 Исследуется: ${progress.tech.name}</div>
+                    <span class="card-badge">${progress.progress}%</span>
                 </div>
-                <small style="color:var(--text-dim)">${progress.progress}%</small>
+                <div class="bar-track"><div class="bar-fill" style="width:${progress.progress}%"></div></div>
             </div>`;
         }
 
-        html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">`;
-        for (const tech of available.slice(0, 8)) {
-            html += `<div style="padding:8px;background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;cursor:pointer" onclick="Tech.startResearch('${tech.id}')">
-                <strong style="font-size:0.85em">${tech.name}</strong><br>
-                <small style="color:var(--text-dim)">${tech.description}</small><br>
-                <small style="color:var(--accent)">${Game.formatMoney(tech.cost)}</small>
+        if (available.length === 0 && !progress) {
+            html += '<div class="empty-hint">Нет доступных технологий. Дождитесь новой эпохи!</div>';
+        }
+
+        html += '<div class="content-list">';
+        for (const tech of available) {
+            const era = Tech.ERAS.find(e => e.id === tech.era);
+            const affordable = Game.canAfford(tech.cost);
+            html += `<div class="card tech-card" onclick="Tech.startResearch('${tech.id}'); UI.updateTech();">
+                <span class="tech-era">Эпоха ${tech.era}</span>
+                <div class="card-title">${tech.name}</div>
+                <div class="card-sub">${tech.description}</div>
+                <div class="card-row" style="margin-top:8px">
+                    <span class="card-price" style="font-size:0.9em; color:${affordable ? 'var(--accent)' : 'var(--danger)'}">${Game.formatMoney(tech.cost)}</span>
+                    <span class="card-badge">⏱ ${tech.researchTime} мес</span>
+                </div>
             </div>`;
         }
-        html += `</div>`;
+        html += '</div>';
         container.innerHTML = html;
     },
 
@@ -307,17 +338,26 @@ const UI = {
     updateCompetitors() {
         const container = document.getElementById('competitorsList');
         if (!container) return;
+        container.className = 'content-list';
         const comps = AI.getCompetitorComparison();
-        if (comps.length === 0) { container.innerHTML = '<p style="color:var(--text-dim)">Нет конкурентов</p>'; return; }
-        container.innerHTML = comps.map(c => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg-dark);border-left:3px solid ${c.color};border-radius:4px;margin-bottom:6px">
-                <div>
-                    <strong>${c.icon} ${c.name}</strong>
-                    <small style="color:var(--text-dim)"> | ${c.clients} клиентов | ${c.marketShare}% рынка</small>
+        if (comps.length === 0) { container.innerHTML = '<div class="empty-hint">Конкурентов нет — вы монополист!</div>'; return; }
+        container.innerHTML = comps.map(c => {
+            const relClass = c.relation === 'Дружелюбный' ? 'friendly' : c.relation === 'Враждебный' ? 'hostile' : 'neutral';
+            return `
+            <div class="card competitor-card" style="border-left-color:${c.color}">
+                <div class="card-row">
+                    <div class="card-title">${c.icon} ${c.name}</div>
+                    <span class="relation-tag ${relClass}">${c.relation}</span>
                 </div>
-                <div><small style="color:var(--text-dim)">${c.relation}</small></div>
-            </div>
-        `).join('');
+                <div class="card-sub" style="margin-top:6px">${c.style}</div>
+                <div class="card-row" style="margin-top:8px">
+                    <span class="card-badge">👥 ${c.clients}</span>
+                    <span class="card-badge">📊 ${c.marketShare}%</span>
+                    <span class="card-badge">⚡ ${c.avgSpeed} Мбит</span>
+                </div>
+                ${c.lastAction ? `<div class="card-sub" style="margin-top:6px;color:var(--warning)">⚠️ ${c.lastAction}</div>` : ''}
+            </div>`;
+        }).join('');
     },
 
 
